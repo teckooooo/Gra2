@@ -1,0 +1,56 @@
+/* Fondo general */
+.auth-bg {
+    background-color: #cccdcd35; /* Cambia este valor por el color que desees */
+}
+
+.auth-logo {
+    max-width: 700px;     /* Cambia esto para hacerlo más pequeño o más grande */
+    height: auto;         /* Se ajusta automáticamente */
+    display: block;
+    margin: 0 auto;
+    margin-bottom: 5rem;
+}
+
+
+/*Tarjeta*/
+.auth-form-card {
+    background-color: #ffffff;
+    color: #111827;           /* text-black de Tailwind */
+    width: 100%;
+    max-width: 28rem;         /* max-w-md ≈ 448px */
+    border-radius: 0.75rem;   /* rounded-xl */
+    padding: 2rem;            /* p-8 */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.944),
+                0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+}
+.logo-wrapper {
+    margin-left: -15rem;
+}
+
+
+/* Texto blanco */
+.auth-text-white {
+    color: #ffffff;
+}
+
+/* Texto claro (links o mensajes) */
+.auth-text-light {
+    color: #531111; /* texto suave para links */
+}
+
+/* Fondo de input */
+.auth-input {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+/* Botón principal */
+.auth-button {
+    background-color: #0094FF;
+    color: #ffffff;
+}
+
+.auth-button:hover {
+    background-color: #008BDB;
+    color: #ffffff;
+}
