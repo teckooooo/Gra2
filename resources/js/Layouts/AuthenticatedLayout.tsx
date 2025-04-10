@@ -41,6 +41,20 @@ export default function Authenticated({
                                 >
                                 Módulo Comercial
                             </NavLink>
+
+                            <NavLink
+                                href={route('reportesCanal')}
+                                active={route().current('reportesCanal')}
+                                >
+                                Reportes Canal
+                            </NavLink>
+
+                            <NavLink
+                                href={route('reportesComercial')}
+                                active={route().current('reportesComercial')}
+                                >
+                                Reportes Comercial
+                            </NavLink>
                         </div>
 
                         </div>

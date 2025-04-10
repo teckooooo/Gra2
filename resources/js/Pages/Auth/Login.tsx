@@ -30,7 +30,7 @@ export default function Login({
 
     return (
         <GuestLayout>
-    <Head title="Log in" />
+    <Head title="Iniciar sesión" />
 
     <div className=" flex items-center justify-center">
         {/* 🎯 Esta es la tarjeta blanca */}

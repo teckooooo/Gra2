@@ -128,7 +128,8 @@ return [
 
     'attributes' => [
         'email' => 'correo electrónico',
-        'password' => 'contraseña',
+        'password' => 'Contraseña',
+        'current_password' => 'Contraseña actual',
     ],
 
 ];

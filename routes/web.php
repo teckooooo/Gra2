@@ -27,4 +27,12 @@ Route::get('/comercial', function () {
     return Inertia::render('comercial');
 })->middleware(['auth', 'verified'])->name('nueva.vista');
 
+Route::get('/reportesCanal', function () {
+    return Inertia::render('reportesCanal');
+})->middleware(['auth', 'verified'])->name('reportesCanal');
+
+Route::get('/reportesComercial', function () {
+    return Inertia::render('reportesComercial');
+})->middleware(['auth', 'verified'])->name('reportesComercial');
+
 require __DIR__.'/auth.php';
