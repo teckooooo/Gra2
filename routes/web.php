@@ -3,7 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
-use Illuminate\Foundation\Application;
+use App\Http\Controllers\PermisoController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +13,6 @@ Route::get('/', function () {
         ? redirect()->route('dashboard')
         : redirect()->route('login');
 });
-
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
@@ -33,6 +32,15 @@ Route::middleware('auth')->group(function () {
 
     // Roles
     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+    Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+    Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+
+    // Permisos
+    Route::get('/permisos', [PermisoController::class, 'index'])->name('permisos.index');
+    Route::get('/roles/{role}/permisos', [PermisoController::class, 'getPermisosPorRol'])->name('roles.permisos');
+    Route::get('/roles/{role}/permisos', [PermisoController::class, 'getPermisosPorRol']);
+    Route::post('/roles/{role}/permisos', [PermisoController::class, 'asignarPermisos'])->name('roles.asignarPermisos');
+    Route::post('/roles/{role}/permisos', [PermisoController::class, 'asignarPermisos']);
 });
 
 Route::get('/comercial', function () {
@@ -50,12 +58,5 @@ Route::get('/reportesComercial', function () {
 Route::get('/configuracion', function () {
     return Inertia::render('configuracion');
 })->middleware(['auth'])->name('configuracion');
-
-
-
-
-
-
-
 
 require __DIR__.'/auth.php';

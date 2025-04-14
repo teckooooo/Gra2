@@ -33,7 +33,7 @@ export default function UpdateProfileInformation({
         <section className={className}>
             <header>
                 <h2 className="text-lg font-medium text-gray-900">
-                    Información del Perfil
+                    Actualizar Información del Perfil
                 </h2>
             </header>
 
