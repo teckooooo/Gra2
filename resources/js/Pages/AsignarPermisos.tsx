@@ -24,19 +24,8 @@ export default function AsignarPermisos() {
     useEffect(() => {
         axios.get('/roles').then(res => setRoles(res.data));
 
-        axios.get('/permisos').then(res => {
-            const permisosBase = [
-                { id: 1, name: 'Acceso a Grilla Canal', group: 'Módulos' },
-                { id: 2, name: 'Acceso a Módulo Comercial', group: 'Módulos' },
-                { id: 3, name: 'Acceso a Reportes Canal', group: 'Módulos' },
-                { id: 4, name: 'Acceso a Reportes Comercial', group: 'Módulos' },
-                { id: 5, name: 'Acceso a Configuraciones', group: 'Módulos' },
-            ];
+        axios.get('/permisos').then(res => setPermisos(res.data));
 
-            const unicos = new Map<number, Permiso>();
-            [...permisosBase, ...res.data].forEach(p => unicos.set(p.id, p));
-            setPermisos(Array.from(unicos.values()));
-        });
     }, []);
 
     useEffect(() => {
