@@ -2,18 +2,23 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Head } from '@inertiajs/react';
 
+interface Role {
+    id: number;
+    name: string;
+}
+
 export default function CrearUsuarios() {
     const [form, setForm] = useState({
         name: '',
         email: '',
         password: '',
-        role: '',
+        role_id: '',
     });
 
-    const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
 
     useEffect(() => {
-        axios.get('/api/roles').then(res => setRoles(res.data));
+        axios.get('/roles').then(res => setRoles(res.data));
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -21,7 +26,7 @@ export default function CrearUsuarios() {
         try {
             await axios.post('/usuarios', form);
             alert('Usuario creado correctamente');
-            setForm({ name: '', email: '', password: '', role: '' });
+            setForm({ name: '', email: '', password: '', role_id: '' });
         } catch (err) {
             console.error(err);
             alert('Error al crear usuario');
@@ -29,50 +34,56 @@ export default function CrearUsuarios() {
     };
 
     return (
-        <div className="p-6">
+        <div className="p-6 bg-gray-50 min-h-screen">
             <Head title="Crear Usuario" />
-            <h2 className="text-xl font-bold mb-4">Crear Usuario</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <input
-                    type="text"
-                    placeholder="Nombre"
-                    className="w-full border p-2"
-                    value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value })}
-                />
-                <input
-                    type="email"
-                    placeholder="Email"
-                    className="w-full border p-2"
-                    value={form.email}
-                    onChange={e => setForm({ ...form, email: e.target.value })}
-                />
-                <input
-                    type="password"
-                    placeholder="Contraseña"
-                    className="w-full border p-2"
-                    value={form.password}
-                    onChange={e => setForm({ ...form, password: e.target.value })}
-                />
-                <select
-                    className="w-full border p-2"
-                    value={form.role}
-                    onChange={e => setForm({ ...form, role: e.target.value })}
-                >
-                    <option value="">Seleccionar rol</option>
-                    {roles.map(r => (
-                        <option key={r.id} value={r.name}>
-                            {r.name}
-                        </option>
-                    ))}
-                </select>
-                <button
-                    type="submit"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    Crear Usuario
-                </button>
-            </form>
+            <div className="max-w-xl mx-auto">
+                <h2 className="text-2xl font-bold mb-4">Crear Usuario</h2>
+                <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded shadow">
+                    <input
+                        type="text"
+                        placeholder="Nombre"
+                        className="w-full border border-gray-300 p-2 rounded"
+                        value={form.name}
+                        onChange={e => setForm({ ...form, name: e.target.value })}
+                        required
+                    />
+                    <input
+                        type="email"
+                        placeholder="Email"
+                        className="w-full border border-gray-300 p-2 rounded"
+                        value={form.email}
+                        onChange={e => setForm({ ...form, email: e.target.value })}
+                        required
+                    />
+                    <input
+                        type="password"
+                        placeholder="Contraseña"
+                        className="w-full border border-gray-300 p-2 rounded"
+                        value={form.password}
+                        onChange={e => setForm({ ...form, password: e.target.value })}
+                        required
+                    />
+                    <select
+                        className="w-full border border-gray-300 p-2 rounded"
+                        value={form.role_id}
+                        onChange={e => setForm({ ...form, role_id: e.target.value })}
+                        required
+                    >
+                        <option value="">Seleccionar rol</option>
+                        {roles.map(role => (
+                            <option key={role.id} value={role.id}>
+                                {role.name}
+                            </option>
+                        ))}
+                    </select>
+                    <button
+                        type="submit"
+                        className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        Crear Usuario
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }
