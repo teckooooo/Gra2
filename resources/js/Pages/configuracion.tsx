@@ -32,7 +32,7 @@ const Configuracion = () => {
                   vista === 'usuarios' ? 'bg-blue-100 font-bold' : ''
                 }`}
               >
-                Crear Usuarios
+                Gestor de Usuarios
               </button>
             </li>
           </ul>

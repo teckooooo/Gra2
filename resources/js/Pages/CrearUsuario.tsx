@@ -1,89 +1,130 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import CrearUsuarioCard from './CrearUsuarioCard';
+import EditarUsuarioCard from './EditarUsuarioCard';
 import { Head } from '@inertiajs/react';
 
-interface Role {
+interface Usuario {
     id: number;
     name: string;
+    email: string;
+    roles?: { name: string }[];
 }
 
-export default function CrearUsuarios() {
-    const [form, setForm] = useState({
-        name: '',
-        email: '',
-        password: '',
-        role_id: '',
-    });
+export default function Usuarios() {
+    const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+    const [mostrarCrear, setMostrarCrear] = useState(false);
+    const [mostrarEditar, setMostrarEditar] = useState(false);
+    const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<Usuario | null>(null);
 
-    const [roles, setRoles] = useState<Role[]>([]);
-
-    useEffect(() => {
-        axios.get('/roles').then(res => setRoles(res.data));
-    }, []);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const cargarUsuarios = async () => {
         try {
-            await axios.post('/usuarios', form);
-            alert('Usuario creado correctamente');
-            setForm({ name: '', email: '', password: '', role_id: '' });
-        } catch (err) {
-            console.error(err);
-            alert('Error al crear usuario');
+            const res = await axios.get('/usuarios');
+            if (Array.isArray(res.data)) {
+                setUsuarios(res.data);
+            } else {
+                console.error('La respuesta no es un array:', res.data);
+                setUsuarios([]);
+            }
+        } catch (error) {
+            console.error('Error al cargar usuarios:', error);
         }
     };
 
+    const eliminarUsuario = async (id: number) => {
+        if (confirm('¿Estás seguro de eliminar este usuario?')) {
+            try {
+                await axios.delete(`/usuarios/${id}`);
+                cargarUsuarios();
+            } catch (error) {
+                console.error('Error al eliminar usuario:', error);
+            }
+        }
+    };
+
+    const abrirFormularioNuevo = () => {
+        setUsuarioSeleccionado(null);
+        setMostrarCrear(true);
+    };
+
+    const abrirFormularioEdicion = (usuario: Usuario) => {
+        setUsuarioSeleccionado(usuario);
+        setMostrarEditar(true);
+    };
+
+    useEffect(() => {
+        cargarUsuarios();
+    }, []);
+
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
-            <Head title="Crear Usuario" />
-            <div className="max-w-xl mx-auto">
-                <h2 className="text-2xl font-bold mb-4">Crear Usuario</h2>
-                <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded shadow">
-                    <input
-                        type="text"
-                        placeholder="Nombre"
-                        className="w-full border border-gray-300 p-2 rounded"
-                        value={form.name}
-                        onChange={e => setForm({ ...form, name: e.target.value })}
-                        required
+        <div className="p-6 relative z-10">
+            <Head title="Gestor de Usuarios" />
+            <h1 className="text-2xl font-bold mb-4">Gestor de Usuarios</h1>
+
+            <button
+                onClick={abrirFormularioNuevo}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+                Añadir Usuario
+            </button>
+
+            {/* Modal Crear Usuario */}
+            {mostrarCrear && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <CrearUsuarioCard
+                        onClose={() => setMostrarCrear(false)}
+                        onCreated={cargarUsuarios}
                     />
-                    <input
-                        type="email"
-                        placeholder="Email"
-                        className="w-full border border-gray-300 p-2 rounded"
-                        value={form.email}
-                        onChange={e => setForm({ ...form, email: e.target.value })}
-                        required
+                </div>
+            )}
+
+            {/* Modal Editar Usuario */}
+            {mostrarEditar && usuarioSeleccionado && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <EditarUsuarioCard
+                        usuario={usuarioSeleccionado}
+                        onClose={() => {
+                            setMostrarEditar(false);
+                            setUsuarioSeleccionado(null);
+                        }}
+                        onUpdated={cargarUsuarios}
                     />
-                    <input
-                        type="password"
-                        placeholder="Contraseña"
-                        className="w-full border border-gray-300 p-2 rounded"
-                        value={form.password}
-                        onChange={e => setForm({ ...form, password: e.target.value })}
-                        required
-                    />
-                    <select
-                        className="w-full border border-gray-300 p-2 rounded"
-                        value={form.role_id}
-                        onChange={e => setForm({ ...form, role_id: e.target.value })}
-                        required
-                    >
-                        <option value="">Seleccionar rol</option>
-                        {roles.map(role => (
-                            <option key={role.id} value={role.id}>
-                                {role.name}
-                            </option>
-                        ))}
-                    </select>
-                    <button
-                        type="submit"
-                        className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                        Crear Usuario
-                    </button>
-                </form>
-            </div>
+                </div>
+            )}
+
+            <table className="w-full mt-6 border">
+                <thead>
+                    <tr className="bg-gray-100 text-left">
+                        <th className="p-2">Nombre</th>
+                        <th className="p-2">Email</th>
+                        <th className="p-2">Rol</th>
+                        <th className="p-2">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {usuarios.map((user) => (
+                        <tr key={user.id}>
+                            <td className="p-2 border">{user.name}</td>
+                            <td className="p-2 border">{user.email}</td>
+                            <td className="p-2 border">{user.roles?.[0]?.name || 'Sin rol'}</td>
+                            <td className="p-2 border space-x-2">
+                                <button
+                                    onClick={() => abrirFormularioEdicion(user)}
+                                    className="text-blue-600 hover:underline"
+                                >
+                                    Editar
+                                </button>
+                                <button
+                                    onClick={() => eliminarUsuario(user.id)}
+                                    className="text-red-600 hover:underline"
+                                >
+                                    Eliminar
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }

@@ -29,6 +29,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/usuarios', [UserController::class, 'store'])->name('usuarios.store');
     Route::delete('/usuarios/{usuario}', [UserController::class, 'destroy'])->name('usuarios.destroy');
     Route::put('/usuarios/{usuario}/rol', [UserController::class, 'updateRol'])->name('usuarios.updateRol');
+    Route::get('/usuarios', [UserController::class, 'index']);
+    Route::post('/usuarios', [UserController::class, 'store']);
+    Route::put('/usuarios/{user}', [UserController::class, 'update']);
+    Route::delete('/usuarios/{user}', [UserController::class, 'destroy']);
+    Route::delete('/usuarios/{id}', [UserController::class, 'destroy']);
+
 
     // Roles
     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
