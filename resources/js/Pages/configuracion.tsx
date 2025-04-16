@@ -1,12 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { usePage } from '@inertiajs/react';
-import AsignarPermisos from './AsignarPermisos'
-import CrearUsuario from './CrearUsuario'
+import AsignarPermisos from './AsignarPermisos';
+import CrearUsuario from './CrearUsuario';
+import BaseDeDatos from './BaseDeDatos'; // ⚠️ Asegúrate de crear este componente
 
 const Configuracion = () => {
   const { auth } = usePage().props;
-  const [vista, setVista] = useState<'roles' | 'usuarios'>('roles');
+  const [vista, setVista] = useState<'roles' | 'usuarios' | 'bd'>('roles');
 
   return (
     <AuthenticatedLayout>
@@ -35,6 +36,16 @@ const Configuracion = () => {
                 Gestor de Usuarios
               </button>
             </li>
+            <li>
+              <button
+                onClick={() => setVista('bd')}
+                className={`w-full text-left px-4 py-2 rounded ${
+                  vista === 'bd' ? 'bg-blue-100 font-bold' : ''
+                }`}
+              >
+                Base de Datos
+              </button>
+            </li>
           </ul>
         </aside>
 
@@ -44,6 +55,7 @@ const Configuracion = () => {
 
           {vista === 'roles' && <AsignarPermisos />}
           {vista === 'usuarios' && <CrearUsuario />}
+          {vista === 'bd' && <BaseDeDatos />}
         </main>
       </div>
     </AuthenticatedLayout>
@@ -51,4 +63,3 @@ const Configuracion = () => {
 };
 
 export default Configuracion;
-

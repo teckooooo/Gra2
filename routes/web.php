@@ -5,8 +5,10 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermisoController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ImportarExcelController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+
 
 Route::get('/', function () {
     return Auth::check()
@@ -47,6 +49,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/roles/{role}/permisos', [PermisoController::class, 'getPermisosPorRol']);
     Route::post('/roles/{role}/permisos', [PermisoController::class, 'asignarPermisos'])->name('roles.asignarPermisos');
     Route::post('/roles/{role}/permisos', [PermisoController::class, 'asignarPermisos']);
+
+    //Base de datos
+    Route::post('/importar-excel', [ImportarExcelController::class, 'importar']);
 });
 
 Route::get('/comercial', function () {
