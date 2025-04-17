@@ -9,15 +9,19 @@ interface AuthUser {
     id: number;
     name: string;
     email: string;
-    permissions: string[];
+    permissions: string[]; // obligatorio, no opcional
 }
 
-export default function Authenticated({
-    header,
-    children,
-}: PropsWithChildren<{ header?: ReactNode }>) {
-    const { auth } = usePage().props;
-    const user = auth.user as AuthUser;
+interface LayoutProps extends PropsWithChildren {
+    header?: ReactNode;
+    auth?: {
+        user: AuthUser;
+    };
+}
+
+export default function Authenticated({ auth, header, children }: LayoutProps) {
+    const page = usePage().props;
+    const user = (auth?.user || (page.auth?.user as AuthUser)) ?? { name: '', email: '', permissions: [] };
     const permisos: string[] = user?.permissions ?? [];
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
@@ -53,6 +57,11 @@ export default function Authenticated({
                                 {permisos.includes('Acceso a Reportes Comercial') && (
                                     <NavLink href={route('reportesComercial')} active={route().current('reportesComercial')}>
                                         Reportes Comercial
+                                    </NavLink>
+                                )}
+                                {permisos.includes('Acceso a Canales') && (
+                                    <NavLink href={route('canales')} active={route().current('canales')}>
+                                        Canales
                                     </NavLink>
                                 )}
                             </div>
@@ -129,6 +138,11 @@ export default function Authenticated({
                         {permisos.includes('Acceso a Reportes Comercial') && (
                             <ResponsiveNavLink href={route('reportesComercial')} active={route().current('reportesComercial')}>
                                 Reportes Comercial
+                            </ResponsiveNavLink>
+                        )}
+                        {permisos.includes('Acceso a Canales') && (
+                            <ResponsiveNavLink href={route('canales')} active={route().current('canales')}>
+                                Canales
                             </ResponsiveNavLink>
                         )}
                         {permisos.includes('Acceso a Configuraciones') && (

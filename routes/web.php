@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermisoController;
+use App\Http\Controllers\CanalesController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ImportarExcelController;
 use Inertia\Inertia;
@@ -52,6 +53,8 @@ Route::middleware('auth')->group(function () {
 
     //Base de datos
     Route::post('/importar-excel', [ImportarExcelController::class, 'importar']);
+    // ✅ Canales (correcto con controlador) }
+    Route::get('/canales', [CanalesController::class, 'index'])->name('canales');
 });
 
 Route::get('/comercial', function () {

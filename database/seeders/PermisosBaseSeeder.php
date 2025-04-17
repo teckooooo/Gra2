@@ -17,6 +17,7 @@ class PermisosBaseSeeder extends Seeder
             'Acceso a Reportes Canal',
             'Acceso a Reportes Comercial',
             'Acceso a Configuraciones',
+            'Acceso a Canales'
         ];
 
         foreach ($permisos as $permiso) {
