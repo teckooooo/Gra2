@@ -1,5 +1,6 @@
 import Authenticated from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
+import { useEffect } from 'react';
 
 interface Canal {
     id: number;
@@ -13,25 +14,39 @@ interface PageProps {
             id: number;
             name: string;
             email: string;
-            permissions: string[]; // ahora obligatorio
+            role?: string; // opcional
+            permissions: string[];
         };
     };
     datos: Canal[];
     [key: string]: any;
 }
 
-
 export default function Canales() {
     const { auth, datos } = usePage<PageProps>().props;
 
-    console.log('✅ Datos recibidos:', datos);
+    const user = auth?.user;
 
     const canales = datos?.map(d => ({ id: d.id, nombre: d.canal })) ?? [];
     const decodificadores = datos?.map(d => ({ id: d.id, nombre: d.canales_con_decodificador })) ?? [];
 
+    useEffect(() => {
+        if (user && typeof user.role === 'string') {
+            console.log('✅ Rol del usuario en esta vista:', user.role);
+        } else {
+            console.warn('⚠️ El rol del usuario no está definido');
+        }
+    }, [user]);
+
+    console.log('✅ Datos recibidos:', datos);
+
     return (
-        <Authenticated auth={auth} header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Canales</h2>}>
+        <Authenticated
+            auth={{ user }}
+            header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Canales</h2>}
+        >
             <Head title="Canales" />
+
             <div className="py-6 px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Tabla canales */}

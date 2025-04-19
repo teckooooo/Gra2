@@ -1,6 +1,16 @@
 // resources/js/Pages/NuevaVista.tsx
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
+import { useEffect } from 'react';
+import { usePage } from '@inertiajs/react';
+import type { User } from '@/types/User';
+
+interface PageProps {
+    auth: {
+        user: User;
+    };
+}
+
 
 export default function NuevaVista() {
     return (

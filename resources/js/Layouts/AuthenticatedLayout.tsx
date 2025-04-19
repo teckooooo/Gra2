@@ -3,34 +3,35 @@ import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
-import { PropsWithChildren, ReactNode, useState } from 'react';
-
-interface AuthUser {
-    id: number;
-    name: string;
-    email: string;
-    permissions: string[]; // obligatorio, no opcional
-}
+import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
+import type { User } from '@/types/User';
 
 interface LayoutProps extends PropsWithChildren {
     header?: ReactNode;
     auth?: {
-        user: AuthUser;
+        user: User;
     };
 }
 
 export default function Authenticated({ auth, header, children }: LayoutProps) {
     const page = usePage().props;
-    const user = (auth?.user || (page.auth?.user as AuthUser)) ?? { name: '', email: '', permissions: [] };
+    const user = auth?.user || (page.auth?.user as User);
     const permisos: string[] = user?.permissions ?? [];
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
+
+    useEffect(() => {
+        if (user?.role) {
+            console.log('%c👤 Rol del usuario:', 'color: #93c5fd; font-weight: bold', user.role);
+        }
+    }, [user?.role]);
 
     return (
         <div className="min-h-screen bg-gray-100">
             <nav className="border-b border-gray-100 bg-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
+                        {/* Logo y enlaces */}
                         <div className="flex">
                             <div className="flex shrink-0 items-center logo-wrapper">
                                 <Link href="/">
@@ -67,6 +68,7 @@ export default function Authenticated({ auth, header, children }: LayoutProps) {
                             </div>
                         </div>
 
+                        {/* Usuario y menú */}
                         <div className="hidden sm:ms-6 sm:flex sm:items-center">
                             <div className="relative ms-3">
                                 <Dropdown>
@@ -100,6 +102,7 @@ export default function Authenticated({ auth, header, children }: LayoutProps) {
                             </div>
                         </div>
 
+                        {/* Botón hamburguesa mobile */}
                         <div className="-me-2 flex items-center sm:hidden">
                             <button
                                 onClick={() => setShowingNavigationDropdown(prev => !prev)}
@@ -118,6 +121,7 @@ export default function Authenticated({ auth, header, children }: LayoutProps) {
                     </div>
                 </div>
 
+                {/* Menú móvil */}
                 <div className={`${showingNavigationDropdown ? 'block' : 'hidden'} sm:hidden`}>
                     <div className="space-y-1 pb-3 pt-2">
                         {permisos.includes('Acceso a Grilla Canal') && (

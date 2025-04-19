@@ -53,9 +53,16 @@ Route::middleware('auth')->group(function () {
 
     //Base de datos
     Route::post('/importar-excel', [ImportarExcelController::class, 'importar']);
-    // ✅ Canales (correcto con controlador) }
-    Route::get('/canales', [CanalesController::class, 'index'])->name('canales');
+
 });
+
+Route::get('/canales', function () {
+    // Obtener los datos desde la base de datos
+    $datos = DB::table('sheet_canales')->get();
+    return Inertia::render('Canales', [
+        'datos' => $datos,
+    ]);
+})->middleware(['auth', 'verified'])->name('canales');
 
 Route::get('/comercial', function () {
     return Inertia::render('comercial');
