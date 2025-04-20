@@ -10,6 +10,9 @@ use App\Http\Controllers\ImportarExcelController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 
+use Illuminate\Support\Facades\DB;
+
+
 
 Route::get('/', function () {
     return Auth::check()
@@ -55,18 +58,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/importar-excel', [ImportarExcelController::class, 'importar']);
 
 });
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/canales', [CanalesController::class, 'index'])->name('canales');          // vista principal con datos
-    Route::post('/canales', [CanalesController::class, 'store'])->name('canales.store');    // guardar nuevo canal
-    Route::put('/canales/{id}', [CanalesController::class, 'update'])->name('canales.update'); // actualizar canal
-    Route::delete('/canales/{id}', [CanalesController::class, 'destroy'])->name('canales.destroy'); // eliminar canal
-});
+Route::get('/canales', function () {
+    // Obtener los datos desde la base de datos
+    $datos = DB::table('sheet_canales')->get();
+    return Inertia::render('Canales', [
+        'datos' => $datos,
+    ]);
 
+})->middleware(['auth', 'verified'])->name('canales');
 Route::post('/canales', [CanalesController::class, 'store'])->name('canales.store');
-Route::post('/canales/agregar', [CanalesController::class, 'agregarCanal'])->middleware(['auth']);
-Route::delete('/canales/{id}', [CanalesController::class, 'destroy'])->name('canales.destroy');
-// opcional para edición:
 Route::put('/canales/{id}', [CanalesController::class, 'update'])->name('canales.update');
+Route::delete('/canales/{id}', [CanalesController::class, 'destroy'])->name('canales.destroy');
 
 Route::get('/comercial', function () {
     return Inertia::render('comercial');

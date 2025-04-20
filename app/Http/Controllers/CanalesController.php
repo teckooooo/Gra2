@@ -61,24 +61,24 @@ class CanalesController extends Controller
 
         return redirect()->back()->with('success', 'Canal agregado correctamente.');
     }
-
     public function update(Request $request, $id)
-{
-    $request->validate([
-        'nombre' => 'required|string|max:255',
-        'tipo' => 'required|in:normal,decodificador',
-    ]);
-
-    $columna = $request->tipo === 'normal' ? 'canal' : 'canales_con_decodificador';
-    $columnaOpuesta = $request->tipo === 'normal' ? 'canales_con_decodificador' : 'canal';
-
-    DB::table('sheet_canales')->where('id', $id)->update([
-        $columna => $request->nombre,     // ✅ actualiza el campo correcto
-        $columnaOpuesta => null,          // ✅ limpia el campo contrario
-    ]);
-
-    return redirect()->back()->with('success', 'Canal actualizado correctamente.');
-}
+    {
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'tipo' => 'required|in:normal,decodificador',
+        ]);
+    
+        $columna = $request->tipo === 'normal' ? 'canal' : 'canales_con_decodificador';
+        $columnaOpuesta = $request->tipo === 'normal' ? 'canales_con_decodificador' : 'canal';
+    
+        DB::table('sheet_canales')->where('id', $id)->update([
+            $columna => $request->nombre,     // ✅ actualiza el campo correcto
+            $columnaOpuesta => null,          // ✅ limpia el campo contrario
+        ]);
+    
+        return redirect()->back()->with('success', 'Canal actualizado correctamente.');
+    }
+    
 
 
     public function destroy($id)
