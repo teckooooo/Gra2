@@ -7,6 +7,7 @@ use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\CanalesController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ImportarExcelController;
+use App\Http\Controllers\GrillaCanalesController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 
@@ -69,6 +70,10 @@ Route::get('/canales', function () {
 Route::post('/canales', [CanalesController::class, 'store'])->name('canales.store');
 Route::put('/canales/{id}', [CanalesController::class, 'update'])->name('canales.update');
 Route::delete('/canales/{id}', [CanalesController::class, 'destroy'])->name('canales.destroy');
+
+Route::get('/grilla/{zona}', [GrillaCanalesController::class, 'show'])->name('grilla.zona');
+Route::put('/grilla/{zona}/{id}', [GrillaCanalesController::class, 'update'])->name('grilla.zona.update');
+
 
 Route::get('/comercial', function () {
     return Inertia::render('comercial');

@@ -81,7 +81,7 @@ export default function Canales() {
                                 setEditId(null);
                                 reset();
                             }}
-                            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded"
+                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                         >
                             + Agregar Canal
                         </button>
@@ -125,7 +125,7 @@ export default function Canales() {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                                 >
                                     {editId ? 'Actualizar' : 'Guardar'}
                                 </button>
@@ -139,9 +139,9 @@ export default function Canales() {
             <div className="py-6 px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Tabla canales */}
-                    <div className="bg-gray-900 rounded-lg shadow p-4">
-                        <h2 className="text-lg font-semibold text-white mb-2">📺 Canales</h2>
-                        <table className="min-w-full text-white">
+                    <div className="rounded p-4 border border-gray-200 bg-white">
+                        <h2 className="text-lg font-semibold text-Black mb-2">📺 Canales</h2>
+                        <table className="min-w-full text-black">
                             <thead>
                                 <tr><th>#</th><th>Nombre</th><th>Acciones</th></tr>
                             </thead>
@@ -151,8 +151,8 @@ export default function Canales() {
                                         <td>{c.index}</td>
                                         <td>{c.canal}</td>
                                         <td className="space-x-2">
-                                            <button onClick={() => handleEdit(c)} className="text-yellow-400 hover:underline">Editar</button>
-                                            <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:underline">Eliminar</button>
+                                            <button onClick={() => handleEdit(c)} className="text-blue-600 hover:underline">Editar</button>
+                                            <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:underline">Eliminar</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -161,9 +161,10 @@ export default function Canales() {
                     </div>
 
                     {/* Tabla con decodificador */}
-                    <div className="bg-gray-900 rounded-lg shadow p-4">
-                        <h2 className="text-lg font-semibold text-white mb-2">🔑 Canales con Decodificador</h2>
-                        <table className="min-w-full text-white">
+                    <div className="rounded p-4 border border-gray-200 bg-white">
+
+                        <h2 className="text-lg font-semibold text-black mb-2">🔑 Canales con Decodificador</h2>
+                        <table className="min-w-full text-black">
                             <thead>
                                 <tr><th>#</th><th>Nombre</th><th>Acciones</th></tr>
                             </thead>
@@ -173,7 +174,7 @@ export default function Canales() {
                                         <td>{d.index}</td>
                                         <td>{d.canales_con_decodificador}</td>
                                         <td className="space-x-2">
-                                            <button onClick={() => handleEdit(d)} className="text-yellow-400 hover:underline">Editar</button>
+                                            <button onClick={() => handleEdit(d)} className="text-blue-600 hover:underline">Editar</button>
                                             <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:underline">Eliminar</button>
                                         </td>
                                     </tr>
