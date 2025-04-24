@@ -26,60 +26,138 @@ class GrillaCanalesController extends Controller
             abort(404, 'Zona no válida.');
         }
 
-        // Excluir columnas innecesarias
         $columnas = array_filter(
             DB::getSchemaBuilder()->getColumnListing($tabla),
             fn($col) => !in_array($col, ['created_at', 'updated_at'])
         );
 
-        // Obtener filas no nulas ordenadas por fecha y luego por ID
+        // Obtener y formatear fecha
         $datos = DB::table($tabla)
             ->select($columnas)
             ->whereNotNull('fecha')
-            ->orderByRaw("STR_TO_DATE(fecha, '%d/%m/%Y') DESC")
-            ->orderByDesc('id')
             ->get()
+            ->map(function ($item) {
+                // Reemplaza guiones por slash si es necesario
+                $item->fecha = str_replace('-', '/', $item->fecha);
+
+                // Si la fecha viene como yyyy/mm/dd, convertirla a dd/mm/yyyy
+                if (preg_match('/^\d{4}\/\d{2}\/\d{2}$/', $item->fecha)) {
+                    $partes = explode('/', $item->fecha);
+                    $item->fecha = "{$partes[2]}/{$partes[1]}/{$partes[0]}";
+                }
+
+                return $item;
+            })
             ->filter(function ($item) {
-                // ✅ Al menos un campo debe contener datos no nulos
                 return collect($item)->filter(fn($val) => !is_null($val) && trim((string)$val) !== '')->isNotEmpty();
             })
+            ->sortByDesc(function ($item) {
+                $fechaParts = explode('/', $item->fecha); // dd/mm/yyyy
+                return \Carbon\Carbon::createFromFormat('d/m/Y', $item->fecha);
+            })
             ->values();
+
+        // Lista única de canales
+        $canales = DB::table('sheet_canales')
+            ->select('canal')
+            ->whereNotNull('canal')
+            ->pluck('canal')
+            ->merge(
+                DB::table('sheet_canales')
+                    ->select('canales_con_decodificador')
+                    ->whereNotNull('canales_con_decodificador')
+                    ->pluck('canales_con_decodificador')
+            )
+            ->unique()
+            ->sort()
+            ->values();
+
+        // Lista de incidencias
+        $incidencias = DB::table('incidence')->pluck('nombre')->unique()->sort()->values();
 
         return Inertia::render('Dashboard', [
             'zona' => strtolower($zona),
             'datos' => $datos,
+            'canales' => $canales,
+            'incidencias' => $incidencias,
         ]);
     }
-    
+
     public function update(Request $request, $zona, $id)
-{
-    $tabla = 'sheet_' . strtolower(str_replace(' ', '_', $zona));
+    {
+        $tabla = 'sheet_' . strtolower(str_replace(' ', '_', $zona));
 
-    $tablasValidas = [
-        'sheet_combarbala',
-        'sheet_monte_patria',
-        'sheet_ovalle',
-        'sheet_ptn',
-        'sheet_puq',
-        'sheet_salamanca',
-        'sheet_vicuna',
-    ];
+        $tablasValidas = [
+            'sheet_combarbala',
+            'sheet_monte_patria',
+            'sheet_ovalle',
+            'sheet_ptn',
+            'sheet_puq',
+            'sheet_salamanca',
+            'sheet_vicuna',
+        ];
 
-    if (!in_array($tabla, $tablasValidas)) {
-        abort(404, 'Zona no válida.');
+        if (!in_array($tabla, $tablasValidas)) {
+            abort(404, 'Zona no válida.');
+        }
+
+        $columnas = array_filter(
+            DB::getSchemaBuilder()->getColumnListing($tabla),
+            fn($col) => !in_array($col, ['created_at', 'updated_at'])
+        );
+
+        $datos = $request->only($columnas);
+
+        DB::table($tabla)->where('id', $id)->update($datos);
+
+        return back()->with('success', 'Registro actualizado correctamente.');
     }
 
-    $columnas = array_filter(
-        DB::getSchemaBuilder()->getColumnListing($tabla),
-        fn($col) => !in_array($col, ['created_at', 'updated_at','id'])
-    );
+    public function store(Request $request, $zona)
+    {
+        $tabla = 'sheet_' . strtolower(str_replace(' ', '_', $zona));
 
-    $datos = $request->only($columnas);
+        $tablasValidas = [
+            'sheet_combarbala',
+            'sheet_monte_patria',
+            'sheet_ovalle',
+            'sheet_ptn',
+            'sheet_puq',
+            'sheet_salamanca',
+            'sheet_vicuna',
+        ];
 
-    DB::table($tabla)->where('id', $id)->update($datos);
+        if (!in_array($tabla, $tablasValidas)) {
+            abort(404, 'Zona no válida.');
+        }
 
-    return back()->with('success', 'Registro actualizado correctamente.');
-}
+        // Validaciones
+        $request->validate([
+            'fecha' => 'required|date',
+            'canal' => 'required|string',
+            'incidencia' => 'required|string',
+            'frecuencia' => 'nullable|string',
+            'jornada' => 'required|in:AM,PM',
+            'comuna' => 'required|string',
+        ]);
+
+        // Formatear fecha a dd/mm/yyyy y comuna con mayúscula inicial
+        $fechaFormateada = date('d/m/Y', strtotime($request->fecha));
+        $comunaCapitalizada = ucfirst(strtolower($request->comuna));
+
+        // Insertar
+        DB::table($tabla)->insert([
+            'fecha' => $fechaFormateada,
+            'canal' => $request->canal,
+            'incidencia' => $request->incidencia,
+            'frecuencia' => $request->frecuencia,
+            'jornada' => $request->jornada,
+            'comuna' => $comunaCapitalizada,
+        ]);
+
+        return redirect()->route('grilla.zona', strtolower($zona))->with('success', 'Registro creado correctamente.');
+    }
+
 
 
 }

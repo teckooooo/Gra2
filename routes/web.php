@@ -73,6 +73,7 @@ Route::delete('/canales/{id}', [CanalesController::class, 'destroy'])->name('can
 
 Route::get('/grilla/{zona}', [GrillaCanalesController::class, 'show'])->name('grilla.zona');
 Route::put('/grilla/{zona}/{id}', [GrillaCanalesController::class, 'update'])->name('grilla.zona.update');
+Route::post('/grilla/{zona}/store', [GrillaCanalesController::class, 'store'])->name('grilla.zona.store');
 
 
 Route::get('/comercial', function () {
