@@ -27,6 +27,7 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
     const [frecuencia, setFrecuencia] = useState('');
     const [jornada, setJornada] = useState('AM');
     const [comuna, setComuna] = useState(zona);
+    const [formato, setFormato] = useState('DECO');
 
     const { data, setData, post, processing, errors, reset } = useForm({
         fecha: '',
@@ -35,6 +36,7 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
         frecuencia: '',
         jornada: '',
         comuna: '',
+        formato: '',
     });
 
     useEffect(() => {
@@ -68,6 +70,10 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
         setData('comuna', comuna);
     }, [comuna]);
 
+    useEffect(() => {
+        setData('formato', formato);
+    }, [formato]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('grilla.zona.store', zona), {
@@ -79,9 +85,10 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
             },
         });
     };
-    
 
     if (!isOpen) return null;
+
+    const isZonaConFormato = ['ptn', 'puq'].includes(zona.toLowerCase());
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -155,6 +162,20 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
                         </select>
                         {errors.comuna && <p className="text-red-500 text-sm">{errors.comuna}</p>}
                     </div>
+                    {isZonaConFormato && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Formato</label>
+                            <select
+                                value={formato}
+                                onChange={(e) => setFormato(e.target.value)}
+                                className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
+                            >
+                                <option value="DECO">DECO</option>
+                                <option value="Analoga">Analoga</option>
+                            </select>
+                            {errors.formato && <p className="text-red-500 text-sm">{errors.formato}</p>}
+                        </div>
+                    )}
                     <div className="flex justify-end gap-2 pt-4">
                         <button
                             type="button"

@@ -35,7 +35,7 @@ export default function Dashboard() {
     const [editData, setEditData] = useState<Partial<Canal>>({});
     const [modalOpen, setModalOpen] = useState(false);
 
-    const zonas = ['Combarbalá', 'Monte Patria', 'Ovalle', 'Ptn', 'Puq', 'Salamanca', 'Vicuña'];
+    const zonas = ['Combarbalá', 'Monte Patria', 'Ovalle', 'Puerto Natales', 'Punta Arenas', 'Salamanca', 'Vicuña'];
     const zonaMap = Object.fromEntries(zonas.map(z => [toSlug(z), z]));
 
     const columnas = datos.length > 0
@@ -125,61 +125,74 @@ export default function Dashboard() {
                             <table className="min-w-full border-collapse text-sm text-gray-700">
                                 <thead>
                                     <tr>
-                                        {columnas.map(col => (
-                                            <th key={col} className="border px-4 py-2 text-left bg-gray-100">{col}</th>
+                                        {columnas.map(key => (
+                                            <th key={key} className="border px-4 py-2 text-left bg-gray-100">
+                                                {key.charAt(0).toUpperCase() + key.slice(1).toLowerCase()}
+                                            </th>
                                         ))}
                                         <th className="border px-4 py-2 bg-gray-100">Acciones</th>
                                     </tr>
                                 </thead>
+
                                 <tbody>
                                     {filas.map((fila, idx) => (
                                         <tr key={fila.id}>
                                             {columnas.map(col => (
                                                 <td key={col} className="border px-4 py-2">
                                                     {editIndex === idx ? (
-                                                        col === 'canal' ? (
-                                                            <Select
-                                                                options={canales.map(c => ({ value: c, label: c }))}
-                                                                value={{ value: editData[col] ?? '', label: editData[col] ?? '' }}
-                                                                onChange={(e) => handleChange(col, e?.value || '')}
-                                                            />
-                                                        ) : col === 'incidencia' ? (
-                                                            <Select
-                                                                options={incidencias.map(i => ({ value: i, label: i }))}
-                                                                value={{ value: editData[col] ?? '', label: editData[col] ?? '' }}
-                                                                onChange={(e) => handleChange(col, e?.value || '')}
-                                                            />
-                                                        ) : col === 'jornada' ? (
-                                                            <select
-                                                                value={editData[col]}
-                                                                onChange={(e) => handleChange(col, e.target.value)}
-                                                                className="w-full border rounded px-2 py-1"
-                                                            >
-                                                                <option value="AM">AM</option>
-                                                                <option value="PM">PM</option>
-                                                            </select>
-                                                        ) : col === 'comuna' ? (
-                                                            <select
-                                                                value={editData[col]}
-                                                                onChange={(e) => handleChange(col, e.target.value)}
-                                                                className="w-full border rounded px-2 py-1"
-                                                            >
-                                                                {zonas.map(z => (
-                                                                    <option key={z} value={z}>{z}</option>
-                                                                ))}
-                                                            </select>
-                                                        ) : (
-                                                            <input
-                                                                value={editData[col] ?? ''}
-                                                                onChange={(e) => handleChange(col, e.target.value)}
-                                                                className="w-full border rounded px-2 py-1"
-                                                            />
-                                                        )
+                                                    col === 'formato' && ['puq', 'ptn'].includes(zona ?? '') ? (
+                                                        <select
+                                                        value={editData[col]}
+                                                        onChange={(e) => handleChange(col, e.target.value)}
+                                                        className="w-full border rounded px-2 py-1"
+                                                        >
+                                                        <option value="DECO">DECO</option>
+                                                        <option value="Analoga">Analoga</option>
+                                                        </select>
+                                                    ) : col === 'canal' ? (
+                                                        <Select
+                                                        options={canales.map(c => ({ value: c, label: c }))}
+                                                        value={{ value: editData[col] ?? '', label: editData[col] ?? '' }}
+                                                        onChange={(e) => handleChange(col, e?.value || '')}
+                                                        />
+                                                    ) : col === 'incidencia' ? (
+                                                        <Select
+                                                        options={incidencias.map(i => ({ value: i, label: i }))}
+                                                        value={{ value: editData[col] ?? '', label: editData[col] ?? '' }}
+                                                        onChange={(e) => handleChange(col, e?.value || '')}
+                                                        />
+                                                    ) : col === 'jornada' ? (
+                                                        <select
+                                                        value={editData[col]}
+                                                        onChange={(e) => handleChange(col, e.target.value)}
+                                                        className="w-full border rounded px-2 py-1"
+                                                        >
+                                                        <option value="AM">AM</option>
+                                                        <option value="PM">PM</option>
+                                                        </select>
+                                                    ) : col === 'comuna' ? (
+                                                        <select
+                                                        value={editData[col]}
+                                                        onChange={(e) => handleChange(col, e.target.value)}
+                                                        className="w-full border rounded px-2 py-1"
+                                                        >
+                                                        {zonas.map(z => (
+                                                            <option key={z} value={z}>{z}</option>
+                                                        ))}
+                                                        </select>
+                                                    ) : (
+                                                        <input
+                                                        value={editData[col] ?? ''}
+                                                        onChange={(e) => handleChange(col, e.target.value)}
+                                                        className="w-full border rounded px-2 py-1"
+                                                        />
+                                                    )
                                                     ) : col.toLowerCase().includes('fecha') && typeof fila[col] === 'string'
-                                                        ? fila[col].replace(/-/g, '/')
-                                                        : fila[col]}
+                                                    ? fila[col].replace(/-/g, '/')
+                                                    : fila[col]}
                                                 </td>
-                                            ))}
+                                                ))}
+
                                             <td className="border px-4 py-2">
                                                 {editIndex === idx ? (
                                                     <button onClick={handleSave} className="text-green-600 hover:underline">Guardar</button>

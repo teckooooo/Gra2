@@ -16,8 +16,8 @@ class GrillaCanalesController extends Controller
             'sheet_combarbala',
             'sheet_monte_patria',
             'sheet_ovalle',
-            'sheet_ptn',
-            'sheet_puq',
+            'sheet_puerto_natales',
+            'sheet_punta_arenas',
             'sheet_salamanca',
             'sheet_vicuna',
         ];
@@ -91,8 +91,8 @@ class GrillaCanalesController extends Controller
             'sheet_combarbala',
             'sheet_monte_patria',
             'sheet_ovalle',
-            'sheet_ptn',
-            'sheet_puq',
+            'sheet_puerto_natales',
+            'sheet_punta_arenas',
             'sheet_salamanca',
             'sheet_vicuna',
         ];
