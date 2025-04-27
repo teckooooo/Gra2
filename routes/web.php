@@ -7,6 +7,7 @@ use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\CanalesController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ImportarExcelController;
+use App\Http\Controllers\ReportesCableColorController;
 use App\Http\Controllers\GrillaCanalesController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -83,6 +84,10 @@ Route::get('/comercial', function () {
 Route::get('/reportesCanal', function () {
     return Inertia::render('reportesCanal');
 })->middleware(['auth', 'verified'])->name('reportesCanal');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/reportes/cablecolor/{zona}', [ReportesCableColorController::class, 'obtenerDatos'])->name('reporte.cablecolor');
+});
+
 
 Route::get('/reportesComercial', function () {
     return Inertia::render('reportesComercial');

@@ -10,6 +10,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(PermisosBaseSeeder::class);
+        $this->call([IncidencesSeeder::class,]);
 
         $admin = \App\Models\User::factory()->create([
             'name' => 'Admin',

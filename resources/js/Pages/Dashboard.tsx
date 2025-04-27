@@ -140,7 +140,7 @@ export default function Dashboard() {
                                             {columnas.map(col => (
                                                 <td key={col} className="border px-4 py-2">
                                                     {editIndex === idx ? (
-                                                    col === 'formato' && ['puq', 'ptn'].includes(zona ?? '') ? (
+                                                        col === 'formato' && ['punta_arenas', 'puerto_natales'].includes(zona ?? '') ? (
                                                         <select
                                                         value={editData[col]}
                                                         onChange={(e) => handleChange(col, e.target.value)}

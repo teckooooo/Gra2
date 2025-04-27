@@ -88,7 +88,7 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
 
     if (!isOpen) return null;
 
-    const isZonaConFormato = ['ptn', 'puq'].includes(zona.toLowerCase());
+    const isZonaConFormato = ['punta_arenas', 'puerto_natales'].includes(zona.toLowerCase());
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">

@@ -27,7 +27,8 @@ class PermisosBaseSeeder extends Seeder
         // Crear roles
         $admin = Role::firstOrCreate(['name' => 'Administrador']);
         $supervisor = Role::firstOrCreate(['name' => 'Supervisor']);
-        $usuario = Role::firstOrCreate(['name' => 'Usuario']);
+        $usuarioCanal = Role::firstOrCreate(['name' => 'UsuarioCanal']);
+        $usuarioComercial = Role::firstOrCreate(['name' => 'UsuarioComercial']);
 
         // Asignar permisos a los roles
         $admin->syncPermissions($permisos);
@@ -39,8 +40,11 @@ class PermisosBaseSeeder extends Seeder
             'Acceso a Reportes Comercial',
         ]);
 
-        $usuario->syncPermissions([
+        $usuarioCanal->syncPermissions([
             'Acceso a Grilla Canal',
+        ]);
+
+        $usuarioComercial->syncPermissions([
             'Acceso a Módulo Comercial',
         ]);
     }
