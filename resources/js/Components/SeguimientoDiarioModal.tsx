@@ -1,25 +1,19 @@
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment, PropsWithChildren } from 'react';
+import { Fragment } from 'react';
+import { Bar } from 'react-chartjs-2';
 
-export default function Modal({
-  children,
-  show = false,
-  closeable = true,
-  onClose = () => {},
-}: PropsWithChildren<{
+interface Props {
   show: boolean;
-  closeable?: boolean;
-  onClose: CallableFunction;
-}>) {
-  const close = () => {
-    if (closeable) {
-      onClose();
-    }
-  };
+  onClose: () => void;
+  datos: any;
+  width?: number;
+  height?: number;
+}
 
+export default function SeguimientoDiario({ show, onClose, datos, width = 1200, height = 700 }: Props) {
   return (
     <Transition appear show={show} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={close}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
         {/* Fondo oscuro */}
         <Transition.Child
           as={Fragment}
@@ -33,7 +27,7 @@ export default function Modal({
           <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
         </Transition.Child>
 
-        {/* Centrado de contenido */}
+        {/* Contenedor central */}
         <div className="fixed inset-0 flex items-center justify-center p-4 overflow-auto">
           <Transition.Child
             as={Fragment}
@@ -44,9 +38,10 @@ export default function Modal({
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            {/* SOLO ESTA TARJETA, no hay doble fondo */}
             <Dialog.Panel className="w-fit max-w-[95vw] max-h-[95vh] overflow-auto rounded-md bg-white p-6 shadow-xl">
-              {children}
+              {/* Contenido real */}
+              <h3 className="text-lg font-semibold mb-4">Seguimiento diario</h3>
+              <Bar data={datos.data} options={datos.options} width={width} height={height} />
             </Dialog.Panel>
           </Transition.Child>
         </div>

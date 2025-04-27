@@ -1,16 +1,16 @@
 import { Bar } from 'react-chartjs-2';
 
-interface TopCanalesProps {
-    datos: any;
+interface Props {
+  datos: any;
+  width?: number;
+  height?: number;
 }
 
-export default function TopCanales({ datos }: TopCanalesProps) {
-    return (
-        <div className="bg-white p-4 rounded shadow-md">
-            <h3 className="text-lg font-semibold mb-4">Los 10 Canales con más Fallas</h3>
-            <div className="h-80 overflow-x-auto">
-                <Bar data={datos.data} options={datos.options} />
-            </div>
-        </div>
-    );
+export default function TopCanales({ datos, width = 400, height = 300 }: Props) {
+  return (
+    <div className="w-full h-full">
+        <h3 className="text-lg font-semibold mb-4">Seguimiento diario</h3>
+      <Bar data={datos.data} options={datos.options} width={width} height={height} />
+    </div>
+  );
 }
