@@ -69,7 +69,8 @@ export default function ReportesCanal({ auth }: PageProps) {
                 <button
                   key={zona}
                   onClick={() => handleZonaSeleccionada(zona)}
-                  className="block w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-gray-700"
+                  className={`block w-full text-left px-3 py-2 rounded 
+                    ${zonaSeleccionada === zona ? 'bg-blue-100 text-blue-700 font-semibold' : 'hover:bg-gray-100 text-gray-700'}`}
                 >
                   {zona}
                 </button>
@@ -80,10 +81,11 @@ export default function ReportesCanal({ auth }: PageProps) {
               {tvRedZonas.map((zona) => (
                 <button
                   key={zona}
-                  className="block w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-gray-400"
-                  disabled
+                  onClick={() => handleZonaSeleccionada(zona)}
+                  className={`block w-full text-left px-3 py-2 rounded 
+                    ${zonaSeleccionada === zona ? 'bg-blue-100 text-blue-700 font-semibold' : 'hover:bg-gray-100 text-gray-700'}`}
                 >
-                  {zona} (Próximamente)
+                  {zona}
                 </button>
               ))}
             </div>
@@ -100,32 +102,15 @@ export default function ReportesCanal({ auth }: PageProps) {
 
           {loading && (
             <div className="flex items-center justify-center h-full">
-              <svg
-                className="animate-spin h-12 w-12 text-blue-600"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                ></path>
+              <svg className="animate-spin h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
               </svg>
             </div>
           )}
 
           {!loading && zonaSeleccionada && datosReporte && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {/* Seguimiento Diario */}
               <div
                 className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer"
                 onClick={() => abrirModal('seguimiento')}
@@ -133,7 +118,6 @@ export default function ReportesCanal({ auth }: PageProps) {
                 <SeguimientoDiario show={false} onClose={() => {}} datos={datosReporte.seguimiento} />
               </div>
 
-              {/* Jornada AM/PM */}
               <div
                 className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer"
                 onClick={() => abrirModal('jornada')}
@@ -141,7 +125,6 @@ export default function ReportesCanal({ auth }: PageProps) {
                 <JornadaAMPM show={false} onClose={() => {}} datos={datosReporte.jornada} />
               </div>
 
-              {/* Tabla Incidencias */}
               <div
                 className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer"
                 onClick={() => abrirModal('tablaIncidencias')}
@@ -149,7 +132,6 @@ export default function ReportesCanal({ auth }: PageProps) {
                 <TablaIncidencias show={false} onClose={() => {}} datos={datosReporte.incidencias} />
               </div>
 
-              {/* Tabla Último Día */}
               <div
                 className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer"
                 onClick={() => abrirModal('tablaUltimoDia')}

@@ -87,6 +87,13 @@ Route::get('/reportesCanal', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reportes/cablecolor/{zona}', [ReportesCableColorController::class, 'obtenerDatos'])->name('reporte.cablecolor');
 });
+Route::middleware(['auth'])->group(function () {
+    // Ya tienes otras zonas como Combarbalá, Ovalle, etc.
+
+    // Agrega ahora Puerto Natales y Punta Arenas:
+    Route::get('/reportes/cablecolor/puerto_natales', [ReportesCableColorController::class, 'puertoNatales'])->name('reportes.puerto_natales');
+    Route::get('/reportes/cablecolor/punta_arenas', [ReportesCableColorController::class, 'puntaArenas'])->name('reportes.punta_arenas');
+});
 
 
 Route::get('/reportesComercial', function () {
