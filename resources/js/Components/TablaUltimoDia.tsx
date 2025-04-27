@@ -1,25 +1,31 @@
-export default function TablaUltimoDia({ datos }: { datos: any[] }) {
+interface TablaUltimoDiaProps {
+    datos: any[];
+}
+
+export default function TablaUltimoDia({ datos }: TablaUltimoDiaProps) {
     return (
-        <div>
-            <h3 className="text-lg font-semibold mb-2">📋 Último Día</h3>
-            <table className="min-w-full bg-white rounded shadow">
-                <thead>
-                    <tr>
-                        <th className="text-left p-2">Canal</th>
-                        <th className="text-left p-2">Fecha</th>
-                        <th className="text-left p-2">Incidencia</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {datos.map((item, index) => (
-                        <tr key={index}>
-                            <td className="border-t p-2">{item.canal}</td>
-                            <td className="border-t p-2">{item.fecha}</td>
-                            <td className="border-t p-2">{item.incidencia}</td>
+        <div className="bg-white p-4 rounded shadow-md">
+            <h3 className="text-lg font-semibold mb-4">Último Día</h3>
+            <div className="overflow-x-auto">
+                <table className="min-w-full text-sm text-left">
+                    <thead>
+                        <tr className="bg-gray-100">
+                            <th className="py-2 px-4">Canal</th>
+                            <th className="py-2 px-4">Fecha</th>
+                            <th className="py-2 px-4">Incidencia</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {datos.map((item, index) => (
+                            <tr key={index} className="border-t">
+                                <td className="py-2 px-4">{item.canal}</td>
+                                <td className="py-2 px-4">{item.fecha}</td>
+                                <td className="py-2 px-4">{item.incidencia}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

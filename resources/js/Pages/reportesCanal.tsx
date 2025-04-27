@@ -98,15 +98,24 @@ export default function ReportesCanal({ auth }: PageProps) {
                     )}
 
                     {!loading && zonaSeleccionada && datosReporte && (
-                        <div className="space-y-8">
-                            <h2 className="text-2xl font-bold mb-4">Informe {zonaSeleccionada}</h2>
-
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="col-span-1">
                             <SeguimientoDiario datos={datosReporte.seguimiento} />
+                        </div>
+                        <div className="col-span-1">
                             <TopCanales datos={datosReporte.topCanales} />
+                        </div>
+                        <div className="col-span-1">
                             <JornadaAMPM datos={datosReporte.jornada} />
+                        </div>
+                        <div className="col-span-1">
                             <TablaIncidencias datos={datosReporte.incidencias} />
+                        </div>
+                        <div className="col-span-1">
                             <TablaUltimoDia datos={datosReporte.ultimoDia} />
                         </div>
+                    </div>
+                    
                     )}
                 </main>
             </div>

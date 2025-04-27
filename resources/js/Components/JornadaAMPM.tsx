@@ -1,10 +1,16 @@
 import { Bar } from 'react-chartjs-2';
 
-export default function JornadaAMPM({ datos }: { datos: any }) {
+interface JornadaAMPMProps {
+    datos: any;
+}
+
+export default function JornadaAMPM({ datos }: JornadaAMPMProps) {
     return (
-        <div>
-            <h3 className="text-lg font-semibold mb-2">🌅 Jornada AM / PM</h3>
-            <Bar data={datos.data} options={datos.options} />
+        <div className="bg-white p-4 rounded shadow-md">
+            <h3 className="text-lg font-semibold mb-4">Jornada</h3>
+            <div className="h-64">
+                <Bar data={datos.data} options={datos.options} />
+            </div>
         </div>
     );
 }
