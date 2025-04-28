@@ -17,22 +17,13 @@ class ReportesCableColorController extends Controller
 
     public function obtenerDatos(Request $request, $zona)
     {
-        return $this->generarDatosParaZona($zona, true);
+        $fechaInicio = $request->query('fecha_inicio');
+        $fechaFin = $request->query('fecha_fin');
+
+        return $this->generarDatosParaZona($zona, true, $fechaInicio, $fechaFin);
     }
 
-    public function puertoNatales()
-    {
-        $datosReporte = $this->generarDatosParaZona('puerto_natales');
-        return inertia('ReportesCanal', compact('datosReporte'));
-    }
-
-    public function puntaArenas()
-    {
-        $datosReporte = $this->generarDatosParaZona('punta_arenas');
-        return inertia('ReportesCanal', compact('datosReporte'));
-    }
-
-    private function generarDatosParaZona($zona, $esVistaInertia = false)
+    private function generarDatosParaZona($zona, $esVistaInertia = false, $fechaInicio = null, $fechaFin = null)
     {
         $zonasMap = [
             'combarbala' => 'sheet_combarbala',
@@ -49,10 +40,17 @@ class ReportesCableColorController extends Controller
         }
 
         $tabla = $zonasMap[$zona];
-        $datos = DB::table($tabla)->get();
+        $query = DB::table($tabla);
+
+        if ($fechaInicio && $fechaFin) {
+            $query->whereBetween('fecha', [$fechaInicio, $fechaFin]);
+        }
+
+        $datos = $query->get();
 
         $datosReporte = [
             'seguimiento' => $this->generarSeguimientoDiario($datos),
+            'topCanales' => $this->generarTopCanales($datos),
             'jornada' => $this->generarJornadaAMPM($datos),
             'incidencias' => $this->generarTablaIncidencias($datos),
             'ultimoDia' => $this->generarTablaUltimoDia($datos),
@@ -73,16 +71,16 @@ class ReportesCableColorController extends Controller
         foreach ($datos as $fila) {
             $fecha = $fila->fecha;
             $incidencia = trim($fila->incidencia ?? '');
-
             if ($incidencia === '') continue;
 
             $fechas[$fecha] = true;
             $conteoIncidencias[$incidencia][$fecha] = ($conteoIncidencias[$incidencia][$fecha] ?? 0) + 1;
         }
 
+        ksort($fechas);
         $labels = array_keys($fechas);
-        $datasets = [];
 
+        $datasets = [];
         foreach ($conteoIncidencias as $incidencia => $frecuencias) {
             $datasets[] = [
                 'label' => $incidencia,
@@ -92,10 +90,7 @@ class ReportesCableColorController extends Controller
         }
 
         return [
-            'data' => [
-                'labels' => $labels,
-                'datasets' => $datasets,
-            ],
+            'data' => ['labels' => $labels, 'datasets' => $datasets],
             'options' => ['responsive' => true],
         ];
     }
@@ -118,6 +113,7 @@ class ReportesCableColorController extends Controller
             }
         }
 
+        ksort($fechas);
         $labels = array_keys($fechas);
 
         return [
@@ -146,7 +142,6 @@ class ReportesCableColorController extends Controller
 
         foreach ($datos as $fila) {
             $incidencia = trim($fila->incidencia ?? '');
-
             if ($incidencia === '') continue;
 
             $conteo[$incidencia] = ($conteo[$incidencia] ?? 0) + 1;
@@ -181,10 +176,10 @@ class ReportesCableColorController extends Controller
     {
         $incidencias = DB::table('incidence')->pluck('nombre')->toArray();
         $coloresBase = [
-            '#ef4444', '#ec4899', '#7e22ce', '#facc15', '#60a5fa', 
+            '#ef4444', '#ec4899', '#7e22ce', '#facc15', '#60a5fa',
             '#f97316', '#14b8a6', '#6366f1', '#f43f5e', '#22d3ee',
             '#eab308', '#8b5cf6', '#06b6d4', '#fb7185', '#84cc16',
-            '#f59e0b', '#10b981', '#c084fc', '#0ea5e9', '#f87171'
+            '#f59e0b', '#10b981', '#c084fc', '#0ea5e9', '#f87171',
         ];
 
         $this->coloresIncidencias = [];
@@ -197,5 +192,64 @@ class ReportesCableColorController extends Controller
     private function colorIncidencia($incidencia)
     {
         return $this->coloresIncidencias[$incidencia] ?? '#64748b';
+    }
+
+    private function generarTopCanales($datos)
+    {
+        $conteo = [];
+
+        foreach ($datos as $fila) {
+            $canal = $fila->canal;
+            $incidencia = trim($fila->incidencia ?? '');
+            if ($incidencia === '') continue;
+
+            if (!isset($conteo[$canal])) {
+                $conteo[$canal] = [];
+            }
+            $conteo[$canal][$incidencia] = ($conteo[$canal][$incidencia] ?? 0) + 1;
+        }
+
+        $canalesTop = collect($conteo)
+            ->map(fn($incidencias) => array_sum($incidencias))
+            ->sortDesc()
+            ->take(10)
+            ->keys()
+            ->toArray();
+
+        $incidenciasUnicas = [];
+        foreach ($canalesTop as $canal) {
+            foreach (array_keys($conteo[$canal]) as $incidencia) {
+                $incidenciasUnicas[$incidencia] = true;
+            }
+        }
+        $incidenciasUnicas = array_keys($incidenciasUnicas);
+
+        $datasets = [];
+        foreach ($incidenciasUnicas as $incidencia) {
+            $datasets[] = [
+                'label' => $incidencia,
+                'data' => array_map(fn($canal) => $conteo[$canal][$incidencia] ?? 0, $canalesTop),
+                'backgroundColor' => $this->colorIncidencia($incidencia),
+                'stack' => 'Stack 0',
+            ];
+        }
+
+        return [
+            'data' => [
+                'labels' => $canalesTop,
+                'datasets' => $datasets,
+            ],
+            'options' => [
+                'responsive' => true,
+                'indexAxis' => 'y',
+                'plugins' => [
+                    'legend' => ['position' => 'top'],
+                ],
+                'scales' => [
+                    'x' => ['stacked' => true],
+                    'y' => ['stacked' => true],
+                ],
+            ],
+        ];
     }
 }

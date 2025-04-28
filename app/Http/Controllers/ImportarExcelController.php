@@ -9,6 +9,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use Carbon\Carbon;
 
 class ImportarExcelController extends Controller
 {
@@ -57,10 +59,46 @@ class ImportarExcelController extends Controller
             $rows = array_slice($data, 1);
             foreach ($rows as $row) {
                 $rowData = [];
+                $rowIsEmpty = true; // Marcar si la fila está vacía
+
                 foreach ($validHeaders as $i => $column) {
-                    $rowData[$column] = $row[$i] ?? null;
+                    $value = $row[$i] ?? null;
+
+                    if ($value !== null && $value !== '') {
+                        $rowIsEmpty = false; // Hay al menos un valor no vacío
+
+                        // --- Solo intentar formatear si es número mayor a 25569 (01/01/1970 en Excel) ---
+                        if (is_numeric($value) && $value > 25569 && $value < 60000) {
+                            try {
+                                $fecha = ExcelDate::excelToDateTimeObject($value);
+                                if ($fecha) {
+                                    $value = $fecha->format('d/m/Y');
+                                }
+                            } catch (\Exception $e) {
+                                // No hacer nada si no es fecha válida
+                            }
+                        } else {
+                            // Si es un texto que parece fecha tipo "2025-04-28"
+                            if (is_string($value)) {
+                                try {
+                                    $fechaTexto = Carbon::parse($value);
+                                    if ($fechaTexto && $fechaTexto->year > 1900) {
+                                        $value = $fechaTexto->format('d/m/Y');
+                                    }
+                                } catch (\Exception $e) {
+                                    // No hacer nada si no es fecha de texto válida
+                                }
+                            }
+                        }
+                    }
+
+                    $rowData[$column] = $value;
                 }
-                DB::table($tableName)->insert($rowData);
+
+                // Insertar solo si la fila no está vacía
+                if (!$rowIsEmpty) {
+                    DB::table($tableName)->insert($rowData);
+                }
             }
         }
 

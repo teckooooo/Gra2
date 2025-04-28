@@ -9,6 +9,7 @@ import SeguimientoDiarioModal from '@/Components/SeguimientoDiarioModal';
 import JornadaAMPMModal from '@/Components/JornadaAMPMModal';
 import TablaIncidenciasModal from '@/Components/TablaIncidenciasModal';
 import TablaUltimoDiaModal from '@/Components/TablaUltimoDiaModal';
+import TopCanales from '@/Components/TopCanales';
 
 interface PageProps {
   auth: any;
@@ -29,15 +30,19 @@ export default function ReportesCanal({ auth }: PageProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<string | null>(null);
 
+  const [fechaInicio, setFechaInicio] = useState<string>('');
+  const [fechaFin, setFechaFin] = useState<string>('');
+
   const cableColorZonas = ['Combarbalá', 'Monte Patria', 'Ovalle', 'Salamanca', 'Vicuña'];
   const tvRedZonas = ['Puerto Natales', 'Punta Arenas'];
 
-  const handleZonaSeleccionada = (zona: string) => {
-    setZonaSeleccionada(zona);
+  const cargarDatos = (zona: string, inicio: string, fin: string) => {
+    if (!inicio || !fin) return;
+
     setLoading(true);
     const zonaSlug = convertirASlug(zona);
 
-    router.visit(`/reportes/cablecolor/${zonaSlug}`, {
+    router.visit(`/reportes/cablecolor/${zonaSlug}?fecha_inicio=${inicio}&fecha_fin=${fin}`, {
       only: ['datosReporte'],
       preserveState: true,
       onSuccess: (page) => {
@@ -48,6 +53,29 @@ export default function ReportesCanal({ auth }: PageProps) {
         setLoading(false);
       },
     });
+  };
+
+  const handleZonaSeleccionada = (zona: string) => {
+    setZonaSeleccionada(zona);
+    if (fechaInicio && fechaFin) {
+      cargarDatos(zona, fechaInicio, fechaFin);
+    }
+  };
+
+  const handleFechaInicioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFechaInicio(value);
+    if (zonaSeleccionada && value && fechaFin) {
+      cargarDatos(zonaSeleccionada, value, fechaFin);
+    }
+  };
+
+  const handleFechaFinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFechaFin(value);
+    if (zonaSeleccionada && fechaInicio && value) {
+      cargarDatos(zonaSeleccionada, fechaInicio, value);
+    }
   };
 
   const abrirModal = (tipo: string) => {
@@ -69,8 +97,9 @@ export default function ReportesCanal({ auth }: PageProps) {
                 <button
                   key={zona}
                   onClick={() => handleZonaSeleccionada(zona)}
-                  className={`block w-full text-left px-3 py-2 rounded 
-                    ${zonaSeleccionada === zona ? 'bg-blue-100 text-blue-700 font-semibold' : 'hover:bg-gray-100 text-gray-700'}`}
+                  className={`block w-full text-left px-3 py-2 rounded ${
+                    zonaSeleccionada === zona ? 'bg-blue-100 text-blue-700 font-semibold' : 'hover:bg-gray-100 text-gray-700'
+                  }`}
                 >
                   {zona}
                 </button>
@@ -82,8 +111,9 @@ export default function ReportesCanal({ auth }: PageProps) {
                 <button
                   key={zona}
                   onClick={() => handleZonaSeleccionada(zona)}
-                  className={`block w-full text-left px-3 py-2 rounded 
-                    ${zonaSeleccionada === zona ? 'bg-blue-100 text-blue-700 font-semibold' : 'hover:bg-gray-100 text-gray-700'}`}
+                  className={`block w-full text-left px-3 py-2 rounded ${
+                    zonaSeleccionada === zona ? 'bg-blue-100 text-blue-700 font-semibold' : 'hover:bg-gray-100 text-gray-700'
+                  }`}
                 >
                   {zona}
                 </button>
@@ -100,6 +130,30 @@ export default function ReportesCanal({ auth }: PageProps) {
             </div>
           )}
 
+          {zonaSeleccionada && (
+            <div className="flex flex-col md:flex-row items-center justify-end mb-4 gap-4">
+              <div className="flex items-center">
+                <label className="mr-2 font-semibold text-gray-700">Desde:</label>
+                <input
+                  type="date"
+                  value={fechaInicio}
+                  onChange={handleFechaInicioChange}
+                  className="border border-gray-300 rounded px-3 py-1 focus:outline-none focus:ring focus:border-blue-300"
+                />
+              </div>
+
+              <div className="flex items-center">
+                <label className="mr-2 font-semibold text-gray-700">Hasta:</label>
+                <input
+                  type="date"
+                  value={fechaFin}
+                  onChange={handleFechaFinChange}
+                  className="border border-gray-300 rounded px-3 py-1 focus:outline-none focus:ring focus:border-blue-300"
+                />
+              </div>
+            </div>
+          )}
+
           {loading && (
             <div className="flex items-center justify-center h-full">
               <svg className="animate-spin h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -111,79 +165,43 @@ export default function ReportesCanal({ auth }: PageProps) {
 
           {!loading && zonaSeleccionada && datosReporte && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              <div
-                className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer"
-                onClick={() => abrirModal('seguimiento')}
-              >
+              <div className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer" onClick={() => abrirModal('seguimiento')}>
                 <SeguimientoDiario show={false} onClose={() => {}} datos={datosReporte.seguimiento} />
               </div>
 
-              <div
-                className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer"
-                onClick={() => abrirModal('jornada')}
-              >
+              <div className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer" onClick={() => abrirModal('jornada')}>
                 <JornadaAMPM show={false} onClose={() => {}} datos={datosReporte.jornada} />
               </div>
 
-              <div
-                className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer"
-                onClick={() => abrirModal('tablaIncidencias')}
-              >
+              <div className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer" onClick={() => abrirModal('topCanales')}>
+                <TopCanales show={false} onClose={() => {}} datos={datosReporte.topCanales} />
+              </div>
+
+              <div className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer" onClick={() => abrirModal('tablaIncidencias')}>
                 <TablaIncidencias show={false} onClose={() => {}} datos={datosReporte.incidencias} />
               </div>
 
-              <div
-                className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer"
-                onClick={() => abrirModal('tablaUltimoDia')}
-              >
+              <div className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer" onClick={() => abrirModal('tablaUltimoDia')}>
                 <TablaUltimoDia show={false} onClose={() => {}} datos={datosReporte.ultimoDia} />
               </div>
             </div>
           )}
 
-          {/* MODALES ACTIVOS */}
+          {/* Modales */}
           {modalType === 'seguimiento' && (
-            <SeguimientoDiarioModal
-              show={modalOpen}
-              onClose={() => {
-                setModalOpen(false);
-                setModalType(null);
-              }}
-              datos={datosReporte.seguimiento}
-            />
+            <SeguimientoDiarioModal show={modalOpen} onClose={() => { setModalOpen(false); setModalType(null); }} datos={datosReporte.seguimiento} />
           )}
-
           {modalType === 'jornada' && (
-            <JornadaAMPMModal
-              show={modalOpen}
-              onClose={() => {
-                setModalOpen(false);
-                setModalType(null);
-              }}
-              datos={datosReporte.jornada}
-            />
+            <JornadaAMPMModal show={modalOpen} onClose={() => { setModalOpen(false); setModalType(null); }} datos={datosReporte.jornada} />
           )}
-
+          {modalType === 'topCanales' && (
+            <TopCanales show={modalOpen} onClose={() => { setModalOpen(false); setModalType(null); }} datos={datosReporte.topCanales} />
+          )}
           {modalType === 'tablaIncidencias' && (
-            <TablaIncidenciasModal
-              show={modalOpen}
-              onClose={() => {
-                setModalOpen(false);
-                setModalType(null);
-              }}
-              datos={datosReporte.incidencias}
-            />
+            <TablaIncidenciasModal show={modalOpen} onClose={() => { setModalOpen(false); setModalType(null); }} datos={datosReporte.incidencias} />
           )}
-
           {modalType === 'tablaUltimoDia' && (
-            <TablaUltimoDiaModal
-              show={modalOpen}
-              onClose={() => {
-                setModalOpen(false);
-                setModalType(null);
-              }}
-              datos={datosReporte.ultimoDia}
-            />
+            <TablaUltimoDiaModal show={modalOpen} onClose={() => { setModalOpen(false); setModalType(null); }} datos={datosReporte.ultimoDia} />
           )}
         </main>
       </div>

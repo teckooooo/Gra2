@@ -157,7 +157,4 @@ class GrillaCanalesController extends Controller
 
         return redirect()->route('grilla.zona', strtolower($zona))->with('success', 'Registro creado correctamente.');
     }
-
-
-
 }
