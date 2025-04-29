@@ -15,8 +15,6 @@ interface Props {
     usuario?: Usuario | null; // ← nuevo
 }
 
-
-
 export default function CrearUsuarioCard({ onClose, onCreated, modoEdicion, usuario }: Props) {
 
     const [form, setForm] = useState({

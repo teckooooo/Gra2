@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { usePage } from '@inertiajs/react';
 import AsignarPermisos from './AsignarPermisos';
 import CrearUsuario from './CrearUsuario';
-import BaseDeDatos from './BaseDeDatos'; // ⚠️ Asegúrate de crear este componente
+import BaseDeDatos from './BaseDeDatos'; 
 
 const Configuracion = () => {
   const { auth } = usePage().props;

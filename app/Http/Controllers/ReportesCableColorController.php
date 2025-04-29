@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class ReportesCableColorController extends Controller
 {
@@ -40,13 +41,39 @@ class ReportesCableColorController extends Controller
         }
 
         $tabla = $zonasMap[$zona];
-        $query = DB::table($tabla);
 
         if ($fechaInicio && $fechaFin) {
-            $query->whereBetween('fecha', [$fechaInicio, $fechaFin]);
+            $query = DB::table($tabla)
+                ->whereBetween(DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y')"), [
+                    DB::raw("STR_TO_DATE('$fechaInicio', '%d/%m/%Y')"),
+                    DB::raw("STR_TO_DATE('$fechaFin', '%d/%m/%Y')")
+                ])
+                ->get();
+        } else {
+            // Obtener últimas 15 fechas distintas CON datos, ordenadas ASCENDENTE
+            $fechasReales = DB::table($tabla)
+                ->selectRaw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_real")
+                ->whereNotNull('fecha')
+                ->orderByRaw("STR_TO_DATE(fecha, '%d/%m/%Y') DESC")
+                ->distinct()
+                ->limit(15)
+                ->pluck('fecha_real')
+                ->map(fn($f) => Carbon::parse($f)->format('Y-m-d'))
+                ->sort()
+                ->values()
+                ->toArray();
+
+            $query = DB::table($tabla)
+                ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
+                ->whereIn(DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y')"), $fechasReales)
+                ->orderBy('fecha_ordenada', 'asc')
+                ->get();
         }
 
-        $datos = $query->get();
+        $datos = collect($query)->map(function ($fila) {
+            $fila->fecha = Carbon::createFromFormat('Y-m-d', $fila->fecha_ordenada)->format('d/m/Y');
+            return $fila;
+        });
 
         $datosReporte = [
             'seguimiento' => $this->generarSeguimientoDiario($datos),
@@ -65,21 +92,23 @@ class ReportesCableColorController extends Controller
 
     private function generarSeguimientoDiario($datos)
     {
-        $fechas = [];
         $conteoIncidencias = [];
-
+        $fechasReales = [];
+    
         foreach ($datos as $fila) {
             $fecha = $fila->fecha;
+            $fechaCarbon = Carbon::createFromFormat('d/m/Y', $fecha)->format('Y-m-d'); // clave para ordenar
+            $fechasReales[$fechaCarbon] = $fecha; // usamos el formato ISO para orden, pero conservamos original
+    
             $incidencia = trim($fila->incidencia ?? '');
             if ($incidencia === '') continue;
-
-            $fechas[$fecha] = true;
+    
             $conteoIncidencias[$incidencia][$fecha] = ($conteoIncidencias[$incidencia][$fecha] ?? 0) + 1;
         }
-
-        ksort($fechas);
-        $labels = array_keys($fechas);
-
+    
+        ksort($fechasReales); // orden cronológico real
+        $labels = array_values($fechasReales); // conservamos el formato original
+    
         $datasets = [];
         foreach ($conteoIncidencias as $incidencia => $frecuencias) {
             $datasets[] = [
@@ -88,34 +117,36 @@ class ReportesCableColorController extends Controller
                 'backgroundColor' => $this->colorIncidencia($incidencia),
             ];
         }
-
+    
         return [
             'data' => ['labels' => $labels, 'datasets' => $datasets],
             'options' => ['responsive' => true],
         ];
     }
+    
 
     private function generarJornadaAMPM($datos)
     {
-        $fechas = [];
         $conteoAM = [];
         $conteoPM = [];
-
+        $fechasReales = [];
+    
         foreach ($datos as $fila) {
             $fecha = $fila->fecha;
+            $fechaCarbon = Carbon::createFromFormat('d/m/Y', $fecha)->format('Y-m-d');
+            $fechasReales[$fechaCarbon] = $fecha;
+    
             $jornada = strtoupper($fila->jornada ?? 'AM');
-
-            $fechas[$fecha] = true;
             if ($jornada === 'AM') {
                 $conteoAM[$fecha] = ($conteoAM[$fecha] ?? 0) + 1;
             } else {
                 $conteoPM[$fecha] = ($conteoPM[$fecha] ?? 0) + 1;
             }
         }
-
-        ksort($fechas);
-        $labels = array_keys($fechas);
-
+    
+        ksort($fechasReales);
+        $labels = array_values($fechasReales);
+    
         return [
             'data' => [
                 'labels' => $labels,
@@ -135,6 +166,7 @@ class ReportesCableColorController extends Controller
             'options' => ['responsive' => true],
         ];
     }
+    
 
     private function generarTablaIncidencias($datos)
     {
@@ -163,13 +195,17 @@ class ReportesCableColorController extends Controller
 
     private function generarTablaUltimoDia($datos)
     {
-        $ultimos = collect($datos)->sortByDesc('fecha')->take(10);
-
-        return $ultimos->map(fn($fila) => [
-            'canal' => $fila->canal,
-            'fecha' => $fila->fecha,
-            'incidencia' => $fila->incidencia,
-        ])->values();
+        return collect($datos)
+            ->sortBy(function ($fila) {
+                return Carbon::createFromFormat('d/m/Y', $fila->fecha)->timestamp;
+            })
+            ->take(10)
+            ->map(fn($fila) => [
+                'canal' => $fila->canal,
+                'fecha' => $fila->fecha,
+                'incidencia' => $fila->incidencia,
+            ])
+            ->values();
     }
 
     private function cargarColoresIncidencias()

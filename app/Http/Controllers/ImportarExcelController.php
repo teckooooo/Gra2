@@ -1,15 +1,14 @@
-<?php
+<?php 
 
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
-use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 use Illuminate\Support\Str;
-use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Carbon\Carbon;
 
 class ImportarExcelController extends Controller
@@ -26,76 +25,63 @@ class ImportarExcelController extends Controller
 
         foreach ($spreadsheet->getSheetNames() as $sheetName) {
             $sheet = $spreadsheet->getSheetByName($sheetName);
-            $data = $sheet->toArray();
+            $highestRow = $sheet->getHighestRow();
+            $highestColumn = $sheet->getHighestColumn();
 
-            if (empty($data) || count($data) < 2) continue;
-
-            $tableName = 'sheet_' . Str::slug($sheetName, '_');
-            $headers = $data[0];
-
-            // Filtrar columnas vacías del encabezado
-            $validHeaders = [];
-            foreach ($headers as $index => $header) {
-                $column = Str::slug($header, '_');
-                if (!empty($column)) {
-                    $validHeaders[$index] = $column;
+            // Leer encabezados (fila 1)
+            $headersRow = [];
+            for ($col = 'A'; $col <= $highestColumn; $col++) {
+                $header = $sheet->getCell($col . '1')->getValue(); // valor plano
+                $slug = Str::slug($header, '_');
+                if (!empty($slug)) {
+                    $headersRow[$col] = $slug;
                 }
             }
 
-            if (empty($validHeaders)) continue;
+            if (empty($headersRow)) continue;
+
+            $tableName = 'sheet_' . Str::slug($sheetName, '_');
 
             // Crear tabla si no existe
             if (!Schema::hasTable($tableName)) {
-                Schema::create($tableName, function (Blueprint $table) use ($validHeaders) {
+                Schema::create($tableName, function (Blueprint $table) use ($headersRow) {
                     $table->id();
-                    foreach ($validHeaders as $column) {
+                    foreach ($headersRow as $column) {
                         $table->text($column)->nullable();
                     }
                     $table->timestamps();
                 });
             }
 
-            // Insertar filas
-            $rows = array_slice($data, 1);
-            foreach ($rows as $row) {
+            // Leer e insertar filas desde fila 2
+            for ($row = 2; $row <= $highestRow; $row++) {
                 $rowData = [];
-                $rowIsEmpty = true; // Marcar si la fila está vacía
+                $rowIsEmpty = true;
 
-                foreach ($validHeaders as $i => $column) {
-                    $value = $row[$i] ?? null;
+                foreach ($headersRow as $col => $columnName) {
+                    $cell = $sheet->getCell($col . $row);
+                    $cellValue = $cell->getValue(); // valor crudo (puede ser número Excel)
 
-                    if ($value !== null && $value !== '') {
-                        $rowIsEmpty = false; // Hay al menos un valor no vacío
+                    if ($cellValue !== null && $cellValue !== '') {
+                        $rowIsEmpty = false;
 
-                        // --- Solo intentar formatear si es número mayor a 25569 (01/01/1970 en Excel) ---
-                        if (is_numeric($value) && $value > 25569 && $value < 60000) {
+                        // Si es número tipo fecha (serial Excel)
+                        if (is_numeric($cellValue) && $cellValue > 25000 && $cellValue < 60000) {
                             try {
-                                $fecha = ExcelDate::excelToDateTimeObject($value);
-                                if ($fecha) {
-                                    $value = $fecha->format('d/m/Y');
-                                }
+                                $fecha = ExcelDate::excelToDateTimeObject($cellValue);
+                                $cellValue = $fecha->format('d/m/Y');
                             } catch (\Exception $e) {
-                                // No hacer nada si no es fecha válida
+                                // dejar valor original
                             }
-                        } else {
-                            // Si es un texto que parece fecha tipo "2025-04-28"
-                            if (is_string($value)) {
-                                try {
-                                    $fechaTexto = Carbon::parse($value);
-                                    if ($fechaTexto && $fechaTexto->year > 1900) {
-                                        $value = $fechaTexto->format('d/m/Y');
-                                    }
-                                } catch (\Exception $e) {
-                                    // No hacer nada si no es fecha de texto válida
-                                }
-                            }
+                        } elseif (is_string($cellValue)) {
+                            // Reemplazar guiones por slash
+                            $cellValue = str_replace('-', '/', $cellValue);
                         }
                     }
 
-                    $rowData[$column] = $value;
+                    $rowData[$columnName] = $cellValue;
                 }
 
-                // Insertar solo si la fila no está vacía
                 if (!$rowIsEmpty) {
                     DB::table($tableName)->insert($rowData);
                 }
@@ -104,7 +90,7 @@ class ImportarExcelController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Excel importado con éxito.'
+            'message' => 'Excel importado con éxito (fechas corregidas).'
         ]);
     }
 }
