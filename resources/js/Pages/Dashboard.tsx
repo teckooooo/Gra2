@@ -35,7 +35,7 @@ export default function Dashboard() {
     const [editData, setEditData] = useState<Partial<Canal>>({});
     const [modalOpen, setModalOpen] = useState(false);
 
-    const zonas = ['Combarbalá', 'Monte Patria', 'Ovalle', 'Puerto Natales', 'Punta Arenas', 'Salamanca', 'Vicuña'];
+    const zonas = ['Combarbalá', 'Monte Patria', 'Ovalle','Illapel', 'Puerto Natales', 'Punta Arenas', 'Salamanca', 'Vicuña'];
     const zonaMap = Object.fromEntries(zonas.map(z => [toSlug(z), z]));
 
     const columnas = datos.length > 0

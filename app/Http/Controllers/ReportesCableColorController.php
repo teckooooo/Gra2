@@ -34,6 +34,7 @@ class ReportesCableColorController extends Controller
             'vicuna' => 'sheet_vicuna',
             'puerto_natales' => 'sheet_puerto_natales',
             'punta_arenas' => 'sheet_punta_arenas',
+            'illapel' => 'sheet_illapel',
         ];
 
         if (!array_key_exists($zona, $zonasMap)) {
@@ -44,13 +45,14 @@ class ReportesCableColorController extends Controller
 
         if ($fechaInicio && $fechaFin) {
             $query = DB::table($tabla)
+                ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
                 ->whereBetween(DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y')"), [
                     DB::raw("STR_TO_DATE('$fechaInicio', '%d/%m/%Y')"),
-                    DB::raw("STR_TO_DATE('$fechaFin', '%d/%m/%Y')")
+                    DB::raw("STR_TO_DATE('$fechaFin', '%d/%m/%Y')"),
                 ])
+                ->orderBy('fecha_ordenada', 'asc')
                 ->get();
         } else {
-            // Obtener últimas 15 fechas distintas CON datos, ordenadas ASCENDENTE
             $fechasReales = DB::table($tabla)
                 ->selectRaw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_real")
                 ->whereNotNull('fecha')

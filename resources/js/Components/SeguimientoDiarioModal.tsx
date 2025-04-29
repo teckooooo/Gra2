@@ -6,11 +6,16 @@ interface Props {
   show: boolean;
   onClose: () => void;
   datos: any;
-  width?: number;
-  height?: number;
 }
 
-export default function SeguimientoDiario({ show, onClose, datos, width = 1200, height = 700 }: Props) {
+export default function SeguimientoDiario({ show, onClose, datos }: Props) {
+  // Clonar opciones y asegurar que sea responsivo
+  const opcionesConEstilo = {
+    ...datos.options,
+    responsive: true,
+    maintainAspectRatio: false,
+  };
+
   return (
     <Transition appear show={show} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -39,9 +44,10 @@ export default function SeguimientoDiario({ show, onClose, datos, width = 1200, 
             leaveTo="opacity-0 scale-95"
           >
             <Dialog.Panel className="w-fit max-w-[95vw] max-h-[95vh] overflow-auto rounded-md bg-white p-6 shadow-xl">
-              {/* Contenido real */}
               <h3 className="text-lg font-semibold mb-4">Seguimiento diario</h3>
-              <Bar data={datos.data} options={datos.options} width={width} height={height} />
+              <div style={{ width: '1000px', height: '600px' }}>
+                <Bar data={datos.data} options={opcionesConEstilo} />
+              </div>
             </Dialog.Panel>
           </Transition.Child>
         </div>

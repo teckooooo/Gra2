@@ -20,6 +20,7 @@ class GrillaCanalesController extends Controller
             'sheet_punta_arenas',
             'sheet_salamanca',
             'sheet_vicuna',
+            'sheet_illapel',
         ];
 
         if (!in_array($tabla, $tablasValidas)) {
@@ -95,6 +96,7 @@ class GrillaCanalesController extends Controller
             'sheet_punta_arenas',
             'sheet_salamanca',
             'sheet_vicuna',
+            'sheet_illapel',
         ];
 
         if (!in_array($tabla, $tablasValidas)) {
@@ -125,6 +127,7 @@ class GrillaCanalesController extends Controller
             'sheet_puq',
             'sheet_salamanca',
             'sheet_vicuna',
+            'sheet_illapel',
         ];
 
         if (!in_array($tabla, $tablasValidas)) {

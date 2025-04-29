@@ -23,6 +23,8 @@ class ImportarExcelController extends Controller
         $reader = new Xlsx();
         $spreadsheet = $reader->load($file->getRealPath());
 
+        $incidenciasUnicas = [];
+
         foreach ($spreadsheet->getSheetNames() as $sheetName) {
             $sheet = $spreadsheet->getSheetByName($sheetName);
             $highestRow = $sheet->getHighestRow();
@@ -60,22 +62,36 @@ class ImportarExcelController extends Controller
 
                 foreach ($headersRow as $col => $columnName) {
                     $cell = $sheet->getCell($col . $row);
-                    $cellValue = $cell->getValue(); // valor crudo (puede ser número Excel)
+                    $cellValue = $cell->getValue(); // valor crudo
 
                     if ($cellValue !== null && $cellValue !== '') {
                         $rowIsEmpty = false;
 
-                        // Si es número tipo fecha (serial Excel)
-                        if (is_numeric($cellValue) && $cellValue > 25000 && $cellValue < 60000) {
+                        // Solo si es columna de fecha y el valor parece serial
+                        if (Str::contains($columnName, 'fecha') && is_numeric($cellValue) && $cellValue > 25000 && $cellValue < 60000) {
                             try {
                                 $fecha = ExcelDate::excelToDateTimeObject($cellValue);
                                 $cellValue = $fecha->format('d/m/Y');
-                            } catch (\Exception $e) {
-                                // dejar valor original
-                            }
+                            } catch (\Exception $e) {}
                         } elseif (is_string($cellValue)) {
-                            // Reemplazar guiones por slash
+                            // Solo reemplazar guiones si es texto
                             $cellValue = str_replace('-', '/', $cellValue);
+                        }
+                        // Solo si es columna de fecha y el valor parece serial
+                        if (Str::contains($columnName, 'periodo') && is_numeric($cellValue) && $cellValue > 25000 && $cellValue < 60000) {
+                            try {
+                                $fecha = ExcelDate::excelToDateTimeObject($cellValue);
+                                $cellValue = $fecha->format('d/m/Y');
+                            } catch (\Exception $e) {}
+                        } elseif (is_string($cellValue)) {
+                            // Solo reemplazar guiones si es texto
+                            $cellValue = str_replace('-', '/', $cellValue);
+                        }
+
+                        // Capitalizar valores de columna incidencia
+                        if (Str::contains($columnName, 'incidencia')) {
+                            $cellValue = ucfirst(trim($cellValue));
+                            $incidenciasUnicas[] = $cellValue;
                         }
                     }
 
@@ -88,9 +104,24 @@ class ImportarExcelController extends Controller
             }
         }
 
+        // Crear tabla 'incidence' si no existe
+        if (!Schema::hasTable('incidence')) {
+            Schema::create('incidence', function (Blueprint $table) {
+                $table->id();
+                $table->string('nombre')->unique();
+                $table->timestamps();
+            });
+        }
+
+        // Insertar incidencias únicas
+        $incidenciasUnicas = array_unique(array_filter($incidenciasUnicas));
+        foreach ($incidenciasUnicas as $nombre) {
+            DB::table('incidence')->updateOrInsert(['nombre' => $nombre]);
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Excel importado con éxito (fechas corregidas).'
+            'message' => 'Excel importado con éxito. Fechas corregidas y tabla de incidencias creada.'
         ]);
     }
 }

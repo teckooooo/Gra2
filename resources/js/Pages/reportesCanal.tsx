@@ -53,7 +53,7 @@ export default function ReportesCanal({ auth }: PageProps) {
   const [fechaFin, setFechaFin] = useState<string>('');
   const [errorFechas, setErrorFechas] = useState<string | null>(null);
 
-  const cableColorZonas = ['Combarbalá', 'Monte Patria', 'Ovalle', 'Salamanca', 'Vicuña'];
+  const cableColorZonas = ['Combarbalá', 'Monte Patria', 'Ovalle','Illapel', 'Salamanca', 'Vicuña'];
   const tvRedZonas = ['Puerto Natales', 'Punta Arenas'];
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export default function ReportesCanal({ auth }: PageProps) {
       setFechaInicio(convertirAInput(props.fechaInicio));
       setFechaFin(convertirAInput(props.fechaFin));
     }
-    setDatosReporte(props.datosReporte ?? null); // <-- este es clave
+    setDatosReporte(props.datosReporte ?? null); 
   }, [props]);
 
   const cargarDatos = (zona: string, inicio: string, fin: string) => {
