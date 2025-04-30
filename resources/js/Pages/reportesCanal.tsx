@@ -14,6 +14,11 @@ import TablaUltimoDiaModal from '@/Components/TablaUltimoDiaModal';
 import TopCanales from '@/Components/TopCanales';
 import TablaResumenCanales from '@/Components/TablaResumenCanales';
 import TablaResumenIncidencias from '@/Components/TablaResumenIncidencias';
+import GraficoPorcentajeIncidencias from '@/Components/GraficoPorcentajeIncidencias';
+import GraficoPorcentajeIncidenciasModal from '@/Components/GraficoPorcentajeIncidenciasModal';
+import TablaResumenCanalesModal from '@/Components/TablaResumenCanalesModal';
+import TablaResumenIncidenciasModal from '@/Components/TablaResumenIncidenciasModal';
+
 
 interface PageProps {
   auth: any;
@@ -47,6 +52,7 @@ const validarFechas = (inicio: string, fin: string): boolean => {
   return new Date(inicio) <= new Date(fin);
 };
 
+
 export default function ReportesCanal({ auth }: PageProps) {
   const { props } = usePage<PageProps>();
   const [zonaSeleccionada, setZonaSeleccionada] = useState<string | null>(null);
@@ -59,6 +65,15 @@ export default function ReportesCanal({ auth }: PageProps) {
   const [errorFechas, setErrorFechas] = useState<string | null>(null);
   const [anioSeleccionado, setAnioSeleccionado] = useState<string>('');
   const [aniosDisponibles, setAniosDisponibles] = useState<string[]>([]);
+
+  const [porcentajeIncidencias, setPorcentajeIncidencias] = useState(null);
+const [loadingGrafico, setLoadingGrafico] = useState(false);
+const [modalAbierto, setModalAbierto] = useState<string | null>(null);
+
+
+const cerrarModal = () => setModalAbierto(null);
+
+
 
   const cableColorZonas = ['General CableColor', 'Combarbalá', 'Monte Patria', 'Ovalle', 'Illapel', 'Salamanca', 'Vicuña'];
   const tvRedZonas = ['General TVRed', 'Puerto Natales', 'Punta Arenas'];
@@ -93,6 +108,28 @@ useEffect(() => {
     cargarDatos(zonaSeleccionada, '', '');
   }
 }, [anioSeleccionado]);
+
+
+useEffect(() => {
+  const esGeneral = zonaSeleccionada && esVistaGeneral();
+  const anioValido = anioSeleccionado && anioSeleccionado !== 'Todos';
+
+  if (esGeneral) {
+    const tipo = convertirASlug(zonaSeleccionada).includes('tvred') ? 'tvred' : 'cablecolor';
+
+    setLoadingGrafico(true);
+    axios
+      .get(`/reportes/porcentaje-incidencias/${tipo}?anio=${anioValido ? anioSeleccionado : ''}`)
+      .then((res) => {
+        setPorcentajeIncidencias(res.data);
+        setLoadingGrafico(false);
+      });
+  } else {
+    // Limpia los datos si se cambia a una zona específica
+    setPorcentajeIncidencias(null);
+  }
+}, [zonaSeleccionada, anioSeleccionado]);
+
 
 
 const cargarDatos = (zona: string, inicio: string, fin: string) => {
@@ -192,6 +229,7 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
   };
 
   const esZonaGeneral = zonaSeleccionada?.toLowerCase().includes('general');
+  console.log('📊 porcentajeIncidencias:', datosReporte?.porcentajeIncidencias);
 
   return (
     <AuthenticatedLayout auth={auth} header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Reportes Canal</h2>}>
@@ -316,12 +354,49 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
             </div>
           )}
 
-          {datosReporte?.resumenCanales && datosReporte?.resumenIncidencias && (
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
-              <TablaResumenCanales datos={datosReporte.resumenCanales} />
-              <TablaResumenIncidencias datos={datosReporte.resumenIncidencias} />
-            </div>
-          )}
+{zonaSeleccionada && datosReporte?.resumenCanales && datosReporte?.resumenIncidencias && (
+  <>
+    <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="cursor-pointer" onClick={() => setModalAbierto('TablaResumenCanalesModal')}>
+        <TablaResumenCanales datos={datosReporte.resumenCanales} />
+      </div>
+      <div className="cursor-pointer" onClick={() => setModalAbierto('TablaResumenIncidenciasModal')}>
+        <TablaResumenIncidencias datos={datosReporte.resumenIncidencias} />
+      </div>
+    </div>
+
+    {datosReporte.porcentajeIncidencias && (
+      <>
+        <div className="mt-10 cursor-pointer" onClick={() => setModalAbierto('porcentajeIncidencias')}>
+          <GraficoPorcentajeIncidencias
+            show={true}
+            onClose={() => {}}
+            datos={datosReporte.porcentajeIncidencias}
+          />
+        </div>
+
+        <GraficoPorcentajeIncidenciasModal
+          show={modalAbierto === 'porcentajeIncidencias'}
+          onClose={() => cerrarModal()}
+          datos={datosReporte.porcentajeIncidencias}
+        />
+      </>
+    )}
+
+    <TablaResumenCanalesModal
+      show={modalAbierto === 'TablaResumenCanalesModal'}
+      onClose={() => cerrarModal()}
+      datos={datosReporte.resumenCanales}
+    />
+
+    <TablaResumenIncidenciasModal
+      show={modalAbierto === 'TablaResumenIncidenciasModal'}
+      onClose={() => cerrarModal()}
+      datos={datosReporte.resumenIncidencias}
+    />
+  </>
+)}
+
 
           {modalType === 'seguimiento' && (
             <SeguimientoDiarioModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.seguimiento} />
@@ -337,6 +412,12 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
           )}
           {modalType === 'tablaUltimoDia' && (
             <TablaUltimoDiaModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.ultimoDia} />
+          )}
+          {modalType === 'porcentajeIncidencias' && (
+            <GraficoPorcentajeIncidenciasModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.porcentajeIncidencias} />
+          )}
+          {modalType === 'TablaResumenCanalesModal' && (
+            <TablaResumenCanalesModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.resumenCanales} />
           )}
         </main>
       </div>

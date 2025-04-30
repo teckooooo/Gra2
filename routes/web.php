@@ -101,6 +101,7 @@ Route::get('/reportes/general/cablecolor', [ReportesCableColorController::class,
 
 Route::get('/reportes/general/tvred', [ReportesCableColorController::class, 'obtenerReporteGeneral'])->name('reportes.general.tvred')->defaults('tipo', 'tvred');
 
+Route::get('/reportes/porcentaje-incidencias/{tipo}', [ReportesCableColorController::class, 'obtenerPorcentajeIncidencias']);
 
 Route::get('/reportesComercial', function () {
     return Inertia::render('reportesComercial');

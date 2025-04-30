@@ -100,8 +100,6 @@ class ReportesCableColorController extends Controller
     public function obtenerReporteGeneral(Request $request, $tipo)
     {
         $anio = $request->query('anio'); // puede venir vacío ("")
-    
-        // 👇 Mostrar en consola Laravel el año recibido
         logger("📥 Año recibido en Laravel: " . ($anio ?: 'Todos'));
     
         $zonasCableColor = [
@@ -152,9 +150,12 @@ class ReportesCableColorController extends Controller
                 'ultimoDia' => $this->generarTablaUltimoDia($datos, []),
                 'resumenCanales' => $this->generarResumenTopCanales($datos),
                 'resumenIncidencias' => $this->generarResumenIncidencias($datos),
+                'porcentajeIncidencias' => $this->generarGraficoPorcentajeIncidencias($datos), // ✅ AGREGA ESTO
             ],
-            'anioActivo' => $anio, // Se reenvía para que React lo sepa
+            'anioActivo' => $anio,
         ]);
+        
+        
     }
     
     
@@ -422,5 +423,109 @@ class ReportesCableColorController extends Controller
 
         return $resumen;
     }
+
+    public function obtenerPorcentajeIncidencias(Request $request, $tipo)
+    {
+        $anio = $request->query('anio');
+
+        $zonasCableColor = [
+            'sheet_combarbala',
+            'sheet_monte_patria',
+            'sheet_ovalle',
+            'sheet_salamanca',
+            'sheet_illapel',
+            'sheet_vicuna',
+        ];
+
+        $zonasTvRed = [
+            'sheet_puerto_natales',
+            'sheet_punta_arenas',
+        ];
+
+        $tablas = $tipo === 'tvred' ? $zonasTvRed : $zonasCableColor;
+        $datos = collect();
+
+        foreach ($tablas as $tabla) {
+            $query = DB::table($tabla)
+                ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
+                ->whereNotNull('fecha');
+
+            if (!empty($anio)) {
+                $query->whereRaw("YEAR(STR_TO_DATE(fecha, '%d/%m/%Y')) = ?", [$anio]);
+            }
+
+            $registros = $query->get()
+                ->filter(fn($fila) => $fila->fecha_ordenada !== null)
+                ->map(function ($fila) {
+                    $fila->fecha = date('d/m/Y', strtotime($fila->fecha_ordenada));
+                    return $fila;
+                });
+
+            $datos = $datos->merge($registros);
+        }
+
+        return response()->json(
+            $this->generarGraficoPorcentajeIncidencias($datos)
+        );
+    }
+
+    private function generarGraficoPorcentajeIncidencias($datos)
+{
+    $conteoPorMes = [];
+
+    foreach ($datos as $fila) {
+        if (empty($fila->fecha) || empty($fila->incidencia)) continue;
+
+        try {
+            $fecha = Carbon::createFromFormat('d/m/Y', $fila->fecha);
+        } catch (\Exception $e) {
+            continue; // Salta si la fecha está malformada
+        }
+
+        $mes = $fecha->translatedFormat('M Y'); // Ej: "Ene 2025"
+        $incidencia = trim($fila->incidencia);
+
+        $conteoPorMes[$mes][$incidencia] = ($conteoPorMes[$mes][$incidencia] ?? 0) + 1;
+    }
+
+    $labels = array_keys($conteoPorMes);
+    $totalesPorMes = [];
+
+    foreach ($conteoPorMes as $mes => $incidencias) {
+        $totalesPorMes[$mes] = array_sum($incidencias);
+    }
+
+    // Obtener todas las incidencias únicas
+    $todasIncidencias = [];
+    foreach ($conteoPorMes as $mes => $incidencias) {
+        foreach (array_keys($incidencias) as $incidencia) {
+            $todasIncidencias[$incidencia] = true;
+        }
+    }
+    $todasIncidencias = array_keys($todasIncidencias);
+
+    $datasets = [];
+    foreach ($todasIncidencias as $incidencia) {
+        $datasets[] = [
+            'label' => $incidencia,
+            'data' => array_map(function ($mes) use ($conteoPorMes, $incidencia, $totalesPorMes) {
+                $cantidad = $conteoPorMes[$mes][$incidencia] ?? 0;
+                $total = $totalesPorMes[$mes] ?: 1;
+                return round(($cantidad / $total) * 100, 2);
+            }, $labels),
+            'backgroundColor' => $this->colorIncidencia($incidencia),
+        ];
+    }
+
+    return [
+        'data' => [
+            'labels' => $labels,
+            'datasets' => $datasets,
+        ],
+        'options' => ['responsive' => true],
+    ];
+}
+
+
 
 }
