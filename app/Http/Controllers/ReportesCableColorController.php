@@ -97,8 +97,10 @@ class ReportesCableColorController extends Controller
         return $datosReporte;
     }
 
-    public function obtenerReporteGeneral($tipo)
+    public function obtenerReporteGeneral(Request $request, $tipo)
     {
+        $anio = $request->query('anio'); // puede venir vacío
+    
         $zonasCableColor = [
             'sheet_combarbala',
             'sheet_monte_patria',
@@ -107,52 +109,69 @@ class ReportesCableColorController extends Controller
             'sheet_illapel',
             'sheet_vicuna',
         ];
-
+    
         $zonasTvRed = [
             'sheet_puerto_natales',
             'sheet_punta_arenas',
         ];
-
+    
         $tablas = $tipo === 'tvred' ? $zonasTvRed : $zonasCableColor;
-
         $datos = collect();
-
+    
         foreach ($tablas as $tabla) {
             $query = DB::table($tabla)
                 ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
-                ->whereNotNull('fecha')
-                ->get()
+                ->whereNotNull('fecha');
+    
+            if ($anio) {
+                $query->whereYear(DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y')"), $anio);
+            }
+    
+            $registros = $query->get()
+                ->filter(fn($fila) => $fila->fecha_ordenada !== null)
                 ->map(function ($fila) {
-                    $fila->fecha = Carbon::createFromFormat('Y-m-d', $fila->fecha_ordenada)->format('d/m/Y');
+                    $fila->fecha = date('d/m/Y', strtotime($fila->fecha_ordenada));
                     return $fila;
                 });
-
-            $datos = $datos->merge($query);
+    
+            $datos = $datos->merge($registros);
         }
-
-        $fechasReales = $datos
-            ->pluck('fecha')
-            ->map(fn($f) => Carbon::createFromFormat('d/m/Y', $f)->format('Y-m-d'))
-            ->unique()
-            ->sortDesc()
-            ->take(15)
-            ->sort()
-            ->map(fn($f) => Carbon::parse($f)->format('d/m/Y'))
-            ->values()
-            ->toArray();
-
-        $datosFiltrados = $datos->filter(fn($fila) => in_array($fila->fecha, $fechasReales))->values();
-
+    
         return Inertia::render('reportesCanal', [
             'datosReporte' => [
-                'seguimiento' => $this->generarSeguimientoDiario($datosFiltrados),
-                'topCanales' => $this->generarTopCanales($datosFiltrados),
-                'jornada' => $this->generarJornadaAMPM($datosFiltrados),
-                'incidencias' => $this->generarTablaIncidencias($datosFiltrados),
-                'ultimoDia' => $this->generarTablaUltimoDia($datosFiltrados, $fechasReales),
+                'seguimiento' => $this->generarSeguimientoDiario($datos),
+                'topCanales' => $this->generarTopCanales($datos),
+                'jornada' => $this->generarJornadaAMPM($datos),
+                'incidencias' => $this->generarTablaIncidencias($datos),
+                'ultimoDia' => $this->generarTablaUltimoDia($datos, []),
+                'resumenCanales' => $this->generarResumenTopCanales($datos),
+                'resumenIncidencias' => $this->generarResumenIncidencias($datos),
             ],
         ]);
     }
+    
+
+    public function obtenerAniosDisponibles($tipo)
+    {
+        $zonas = $tipo === 'tvred'
+            ? ['sheet_puerto_natales', 'sheet_punta_arenas']
+            : ['sheet_combarbala', 'sheet_monte_patria', 'sheet_ovalle', 'sheet_salamanca', 'sheet_illapel', 'sheet_vicuna'];
+    
+        $anios = collect();
+    
+        foreach ($zonas as $tabla) {
+            $aniosTabla = DB::table($tabla)
+                ->select(DB::raw("YEAR(STR_TO_DATE(fecha, '%d/%m/%Y')) as anio"))
+                ->whereNotNull('fecha')
+                ->distinct()
+                ->pluck('anio');
+    
+            $anios = $anios->merge($aniosTabla);
+        }
+    
+        return response()->json($anios->unique()->sort()->values());
+    }
+    
 
     private function generarSeguimientoDiario($datos)
     {
@@ -258,16 +277,16 @@ class ReportesCableColorController extends Controller
     private function generarTablaUltimoDia($datos, $fechasValidas)
     {
         $fechasFormateadas = collect($fechasValidas)
-            ->map(fn($f) => Carbon::parse($f)->format('d/m/Y'))
+            ->map(fn($f) => date('d/m/Y', strtotime(str_replace('/', '-', $f))))
             ->toArray();
     
         return collect($datos)
             ->filter(fn($fila) => in_array($fila->fecha, $fechasFormateadas))
-            ->sortByDesc(fn($fila) => Carbon::createFromFormat('d/m/Y', $fila->fecha)->timestamp)
+            ->sortByDesc(fn($fila) => strtotime(str_replace('/', '-', $fila->fecha)))
             ->map(fn($fila) => [
-                'canal' => $fila->canal,
-                'fecha' => $fila->fecha,
-                'incidencia' => $fila->incidencia,
+                'canal'     => $fila->canal,
+                'fecha'     => $fila->fecha,
+                'incidencia'=> $fila->incidencia,
             ])
             ->values();
     }
@@ -353,5 +372,59 @@ class ReportesCableColorController extends Controller
         ];
     }
 
+    private function generarResumenTopCanales($datos)
+    {
+        $conteo = [];
+
+        foreach ($datos as $fila) {
+            $canal = trim($fila->canal ?? '');
+            $incidencia = trim($fila->incidencia ?? '');
+            if ($canal === '' || $incidencia === '') continue;
+
+            $conteo[$canal] = ($conteo[$canal] ?? 0) + 1;
+        }
+
+        $total = array_sum($conteo);
+
+        $resumen = collect($conteo)
+            ->sortDesc()
+            ->map(function ($cantidad, $canal) use ($total) {
+                return [
+                    'canal' => $canal,
+                    'cantidad' => $cantidad,
+                    'porcentaje' => number_format(($cantidad / $total) * 100, 2) . '%',
+                ];
+            })
+            ->values();
+
+        return $resumen;
+    }
+
+    private function generarResumenIncidencias($datos)
+    {
+        $conteo = [];
+
+        foreach ($datos as $fila) {
+            $incidencia = trim($fila->incidencia ?? '');
+            if ($incidencia === '') continue;
+
+            $conteo[$incidencia] = ($conteo[$incidencia] ?? 0) + 1;
+        }
+
+        $total = array_sum($conteo);
+
+        $resumen = collect($conteo)
+            ->sortDesc()
+            ->map(function ($cantidad, $incidencia) use ($total) {
+                return [
+                    'incidencia' => $incidencia,
+                    'cantidad' => $cantidad,
+                    'porcentaje' => number_format(($cantidad / $total) * 100, 2) . '%',
+                ];
+            })
+            ->values();
+
+        return $resumen;
+    }
 
 }

@@ -84,16 +84,19 @@ Route::get('/comercial', function () {
 Route::get('/reportesCanal', function () {
     return Inertia::render('reportesCanal');
 })->middleware(['auth', 'verified'])->name('reportesCanal');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reportes/cablecolor/{zona}', [ReportesCableColorController::class, 'obtenerDatos'])->name('reporte.cablecolor');
 });
-Route::middleware(['auth'])->group(function () {
-    // Ya tienes otras zonas como Combarbalá, Ovalle, etc.
 
-    // Agrega ahora Puerto Natales y Punta Arenas:
+Route::middleware(['auth'])->group(function () {
     Route::get('/reportes/cablecolor/puerto_natales', [ReportesCableColorController::class, 'puertoNatales'])->name('reportes.puerto_natales');
     Route::get('/reportes/cablecolor/punta_arenas', [ReportesCableColorController::class, 'puntaArenas'])->name('reportes.punta_arenas');
 });
+
+Route::get('/reportes/general/{tipo}', [ReportesCableColorController::class, 'obtenerReporteGeneral']);
+Route::get('/reportes/anios-disponibles/{tipo}', [ReportesCableColorController::class, 'obtenerAniosDisponibles']);
+
 Route::get('/reportes/general/cablecolor', [ReportesCableColorController::class, 'obtenerReporteGeneral'])->name('reportes.general.cablecolor')->defaults('tipo', 'cablecolor');
 
 Route::get('/reportes/general/tvred', [ReportesCableColorController::class, 'obtenerReporteGeneral'])->name('reportes.general.tvred')->defaults('tipo', 'tvred');

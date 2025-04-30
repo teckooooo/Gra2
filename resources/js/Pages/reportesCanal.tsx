@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import SeguimientoDiario from '@/Components/SeguimientoDiario';
 import JornadaAMPM from '@/Components/JornadaAMPM';
 import TablaIncidencias from '@/Components/TablaIncidencias';
@@ -11,12 +12,15 @@ import TopCanalesModal from '@/Components/TopCanalesModal';
 import TablaIncidenciasModal from '@/Components/TablaIncidenciasModal';
 import TablaUltimoDiaModal from '@/Components/TablaUltimoDiaModal';
 import TopCanales from '@/Components/TopCanales';
+import TablaResumenCanales from '@/Components/TablaResumenCanales';
+import TablaResumenIncidencias from '@/Components/TablaResumenIncidencias';
 
 interface PageProps {
   auth: any;
   fechaInicio?: string;
   fechaFin?: string;
   datosReporte?: any;
+  aniosDisponibles?: string[];
   [key: string]: any;
 }
 
@@ -49,42 +53,62 @@ export default function ReportesCanal({ auth }: PageProps) {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<string | null>(null);
-
   const [fechaInicio, setFechaInicio] = useState<string>('');
   const [fechaFin, setFechaFin] = useState<string>('');
   const [errorFechas, setErrorFechas] = useState<string | null>(null);
+  const [anioSeleccionado, setAnioSeleccionado] = useState<string>('');
+  const [aniosDisponibles, setAniosDisponibles] = useState<string[]>([]);
 
-  const cableColorZonas = ['General CableColor','Combarbalá', 'Monte Patria', 'Ovalle','Illapel', 'Salamanca', 'Vicuña'];
-  const tvRedZonas = ['General TVRed','Puerto Natales', 'Punta Arenas'];
+  const cableColorZonas = ['General CableColor', 'Combarbalá', 'Monte Patria', 'Ovalle', 'Illapel', 'Salamanca', 'Vicuña'];
+  const tvRedZonas = ['General TVRed', 'Puerto Natales', 'Punta Arenas'];
 
   useEffect(() => {
     if (props.fechaInicio && props.fechaFin) {
       setFechaInicio(convertirAInput(props.fechaInicio));
       setFechaFin(convertirAInput(props.fechaFin));
     }
-    setDatosReporte(props.datosReporte ?? null); 
+    setDatosReporte(props.datosReporte ?? null);
   }, [props]);
+
+  useEffect(() => {
+    if (zonaSeleccionada && esVistaGeneral()) {
+      const tipo = convertirASlug(zonaSeleccionada).includes('tvred') ? 'tvred' : 'cablecolor';
+      axios.get(`/reportes/anios-disponibles/${tipo}`).then((res) => {
+        setAniosDisponibles(res.data);
+      });
+    }
+  }, [zonaSeleccionada]);
 
   const cargarDatos = (zona: string, inicio: string, fin: string) => {
     setLoading(true);
     const zonaSlug = convertirASlug(zona);
-  
     const isGeneral = zonaSlug === 'general_cablecolor' || zonaSlug === 'general_tvred';
-  
-    const ruta = isGeneral
+
+    let ruta = isGeneral
       ? zonaSlug === 'general_cablecolor'
         ? '/reportes/general/cablecolor'
         : '/reportes/general/tvred'
-      : `/reportes/cablecolor/${zonaSlug}?fecha_inicio=${inicio}&fecha_fin=${fin}`;
-  
+      : `/reportes/cablecolor/${zonaSlug}`;
+
+    const params: any = {};
+    if (!isGeneral && inicio && fin) {
+      params.fecha_inicio = inicio;
+      params.fecha_fin = fin;
+    }
+    if (isGeneral && anioSeleccionado) {
+      ruta += `?anio=${anioSeleccionado}`;
+    }
+
+    const queryString = new URLSearchParams(params).toString();
+    if (queryString) ruta += `?${queryString}`;
+
     router.visit(ruta, {
-      only: ['datosReporte', 'fechaInicio', 'fechaFin'],
+      only: ['datosReporte'],
       preserveState: true,
       replace: true,
       onFinish: () => setLoading(false),
     });
   };
-  
 
   const handleZonaSeleccionada = (zona: string) => {
     setZonaSeleccionada(zona);
@@ -127,6 +151,13 @@ export default function ReportesCanal({ auth }: PageProps) {
     setModalType(tipo);
     setModalOpen(true);
   };
+
+  const esVistaGeneral = () => {
+    const slug = convertirASlug(zonaSeleccionada || '');
+    return slug === 'general_cablecolor' || slug === 'general_tvred';
+  };
+
+  const esZonaGeneral = zonaSeleccionada?.toLowerCase().includes('general');
 
   return (
     <AuthenticatedLayout auth={auth} header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Reportes Canal</h2>}>
@@ -171,7 +202,28 @@ export default function ReportesCanal({ auth }: PageProps) {
             <div className="text-gray-600">Selecciona una zona desde el menú lateral para ver los reportes.</div>
           )}
 
-          {zonaSeleccionada && (
+          {zonaSeleccionada && esZonaGeneral && (
+            <div className="flex justify-end mb-4">
+              <div className="flex items-center gap-2">
+                <label className="font-semibold text-gray-700">Año:</label>
+                <select
+                  value={anioSeleccionado}
+                  onChange={(e) => {
+                    setAnioSeleccionado(e.target.value);
+                    if (zonaSeleccionada) cargarDatos(zonaSeleccionada, '', '');
+                  }}
+                  className="border px-3 py-1 rounded"
+                >
+                  <option value="">Todos</option>
+                  {aniosDisponibles.map((anio) => (
+                    <option key={anio} value={anio}>{anio}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {zonaSeleccionada && !esZonaGeneral && (
             <>
               <div className="flex flex-col md:flex-row items-center justify-end mb-4 gap-4">
                 <div className="flex items-center">
@@ -208,7 +260,7 @@ export default function ReportesCanal({ auth }: PageProps) {
             </div>
           )}
 
-          {!loading && zonaSeleccionada && datosReporte && (
+          {!loading && zonaSeleccionada && datosReporte && !esVistaGeneral() && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               <div className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer" onClick={() => abrirModal('seguimiento')}>
                 <SeguimientoDiario show={false} onClose={() => {}} datos={datosReporte.seguimiento} />
@@ -228,7 +280,13 @@ export default function ReportesCanal({ auth }: PageProps) {
             </div>
           )}
 
-          {/* Modales */}
+          {datosReporte?.resumenCanales && datosReporte?.resumenIncidencias && (
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <TablaResumenCanales datos={datosReporte.resumenCanales} />
+              <TablaResumenIncidencias datos={datosReporte.resumenIncidencias} />
+            </div>
+          )}
+
           {modalType === 'seguimiento' && (
             <SeguimientoDiarioModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.seguimiento} />
           )}
