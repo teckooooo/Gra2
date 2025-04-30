@@ -99,7 +99,10 @@ class ReportesCableColorController extends Controller
 
     public function obtenerReporteGeneral(Request $request, $tipo)
     {
-        $anio = $request->query('anio'); // puede venir vacío
+        $anio = $request->query('anio'); // puede venir vacío ("")
+    
+        // 👇 Mostrar en consola Laravel el año recibido
+        logger("📥 Año recibido en Laravel: " . ($anio ?: 'Todos'));
     
         $zonasCableColor = [
             'sheet_combarbala',
@@ -123,14 +126,17 @@ class ReportesCableColorController extends Controller
                 ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
                 ->whereNotNull('fecha');
     
-            if ($anio) {
-                $query->whereYear(DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y')"), $anio);
+            // ✅ Solo filtrar por año si fue enviado (no vacío)
+            if (!empty($anio)) {
+                $query->whereRaw("YEAR(STR_TO_DATE(fecha, '%d/%m/%Y')) = ?", [$anio]);
             }
     
             $registros = $query->get()
                 ->filter(fn($fila) => $fila->fecha_ordenada !== null)
                 ->map(function ($fila) {
+                    $anioDetectado = date('Y', strtotime($fila->fecha_ordenada));
                     $fila->fecha = date('d/m/Y', strtotime($fila->fecha_ordenada));
+                    $fila->anio_detectado = $anioDetectado;
                     return $fila;
                 });
     
@@ -147,29 +153,19 @@ class ReportesCableColorController extends Controller
                 'resumenCanales' => $this->generarResumenTopCanales($datos),
                 'resumenIncidencias' => $this->generarResumenIncidencias($datos),
             ],
+            'anioActivo' => $anio, // Se reenvía para que React lo sepa
         ]);
     }
+    
     
 
     public function obtenerAniosDisponibles($tipo)
     {
-        $zonas = $tipo === 'tvred'
-            ? ['sheet_puerto_natales', 'sheet_punta_arenas']
-            : ['sheet_combarbala', 'sheet_monte_patria', 'sheet_ovalle', 'sheet_salamanca', 'sheet_illapel', 'sheet_vicuna'];
-    
-        $anios = collect();
-    
-        foreach ($zonas as $tabla) {
-            $aniosTabla = DB::table($tabla)
-                ->select(DB::raw("YEAR(STR_TO_DATE(fecha, '%d/%m/%Y')) as anio"))
-                ->whereNotNull('fecha')
-                ->distinct()
-                ->pluck('anio');
-    
-            $anios = $anios->merge($aniosTabla);
-        }
-    
-        return response()->json($anios->unique()->sort()->values());
+        return response()->json(
+            DB::table('anios')
+                ->orderByDesc('anio')
+                ->pluck('anio')
+        );
     }
     
 

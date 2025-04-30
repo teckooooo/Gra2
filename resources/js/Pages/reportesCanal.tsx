@@ -21,6 +21,7 @@ interface PageProps {
   fechaFin?: string;
   datosReporte?: any;
   aniosDisponibles?: string[];
+  anioActivo?: string;
   [key: string]: any;
 }
 
@@ -79,36 +80,69 @@ export default function ReportesCanal({ auth }: PageProps) {
     }
   }, [zonaSeleccionada]);
 
-  const cargarDatos = (zona: string, inicio: string, fin: string) => {
-    setLoading(true);
-    const zonaSlug = convertirASlug(zona);
-    const isGeneral = zonaSlug === 'general_cablecolor' || zonaSlug === 'general_tvred';
+// 📥 Mostrar el año recibido directamente desde Laravel (anioActivo)
+useEffect(() => {
+  if ('anioActivo' in props) {
+    console.log(`📥 Año recibido en React desde Laravel (anioActivo): ${props.anioActivo || 'Todos'}`);
+  }
+}, [props.anioActivo]);
 
-    let ruta = isGeneral
-      ? zonaSlug === 'general_cablecolor'
-        ? '/reportes/general/cablecolor'
-        : '/reportes/general/tvred'
-      : `/reportes/cablecolor/${zonaSlug}`;
+// ✅ Llama cargarDatos SOLO cuando el año cambie y haya una zona seleccionada
+useEffect(() => {
+  if (zonaSeleccionada && esVistaGeneral()) {
+    cargarDatos(zonaSeleccionada, '', '');
+  }
+}, [anioSeleccionado]);
 
-    const params: any = {};
-    if (!isGeneral && inicio && fin) {
-      params.fecha_inicio = inicio;
-      params.fecha_fin = fin;
-    }
-    if (isGeneral && anioSeleccionado) {
-      ruta += `?anio=${anioSeleccionado}`;
-    }
 
-    const queryString = new URLSearchParams(params).toString();
-    if (queryString) ruta += `?${queryString}`;
+const cargarDatos = (zona: string, inicio: string, fin: string) => {
+  setLoading(true);
+  const zonaSlug = convertirASlug(zona);
+  const isGeneral = zonaSlug === 'general_cablecolor' || zonaSlug === 'general_tvred';
 
-    router.visit(ruta, {
-      only: ['datosReporte'],
-      preserveState: true,
-      replace: true,
-      onFinish: () => setLoading(false),
-    });
-  };
+  let ruta = isGeneral
+    ? zonaSlug === 'general_cablecolor'
+      ? '/reportes/general/cablecolor'
+      : '/reportes/general/tvred'
+    : `/reportes/cablecolor/${zonaSlug}`;
+
+  const queryParams = new URLSearchParams();
+
+  // Fechas para zonas específicas
+  if (!isGeneral && inicio && fin) {
+    queryParams.append('fecha_inicio', inicio);
+    queryParams.append('fecha_fin', fin);
+  }
+
+  // ✅ Año para vista general solo si es válido y no es "Todos"
+  const anioValido = anioSeleccionado && anioSeleccionado !== '' && anioSeleccionado !== 'Todos';
+
+  if (isGeneral && anioValido) {
+    queryParams.append('anio', anioSeleccionado);
+    console.log(`📤 Enviando año a Laravel: ${anioSeleccionado}`);
+  } else if (isGeneral) {
+    console.log('📤 Enviando año a Laravel: Todos');
+  }
+
+  const queryString = queryParams.toString();
+  if (queryString) ruta += `?${queryString}`;
+
+  router.visit(ruta, {
+    only: ['datosReporte'],
+    preserveState: true,
+    replace: true,
+    onFinish: () => setLoading(false),
+  });
+};
+
+
+const handleCambioDeAnio = (nuevoAnio: string) => {
+  setAnioSeleccionado(nuevoAnio);
+  if (zonaSeleccionada) {
+    cargarDatos(zonaSeleccionada, '', '');
+  }
+};
+
 
   const handleZonaSeleccionada = (zona: string) => {
     setZonaSeleccionada(zona);
@@ -162,7 +196,6 @@ export default function ReportesCanal({ auth }: PageProps) {
   return (
     <AuthenticatedLayout auth={auth} header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Reportes Canal</h2>}>
       <Head title="Reportes Canal" />
-
       <div className="flex min-h-screen">
         <aside className="w-64 bg-white border-r border-gray-200 p-4">
           <nav className="space-y-4">
@@ -207,18 +240,21 @@ export default function ReportesCanal({ auth }: PageProps) {
               <div className="flex items-center gap-2">
                 <label className="font-semibold text-gray-700">Año:</label>
                 <select
-                  value={anioSeleccionado}
-                  onChange={(e) => {
-                    setAnioSeleccionado(e.target.value);
-                    if (zonaSeleccionada) cargarDatos(zonaSeleccionada, '', '');
-                  }}
-                  className="border px-3 py-1 rounded"
-                >
-                  <option value="">Todos</option>
-                  {aniosDisponibles.map((anio) => (
-                    <option key={anio} value={anio}>{anio}</option>
-                  ))}
-                </select>
+  value={anioSeleccionado}
+  onChange={(e) => {
+    const valor = e.target.value;
+    setAnioSeleccionado(valor); // solo setea, no llama cargarDatos aquí
+  }}
+  className="border px-3 py-1 rounded"
+>
+  <option value="">Todos</option>
+  {aniosDisponibles.map((anio) => (
+    <option key={anio} value={anio}>{anio}</option>
+  ))}
+</select>
+
+
+
               </div>
             </div>
           )}
