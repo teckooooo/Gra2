@@ -77,16 +77,6 @@ class ImportarExcelController extends Controller
                             // Solo reemplazar guiones si es texto
                             $cellValue = str_replace('-', '/', $cellValue);
                         }
-                        // Solo si es columna de fecha y el valor parece serial
-                        if (Str::contains($columnName, 'periodo') && is_numeric($cellValue) && $cellValue > 25000 && $cellValue < 60000) {
-                            try {
-                                $fecha = ExcelDate::excelToDateTimeObject($cellValue);
-                                $cellValue = $fecha->format('d/m/Y');
-                            } catch (\Exception $e) {}
-                        } elseif (is_string($cellValue)) {
-                            // Solo reemplazar guiones si es texto
-                            $cellValue = str_replace('-', '/', $cellValue);
-                        }
 
                         // Capitalizar valores de columna incidencia
                         if (Str::contains($columnName, 'incidencia')) {

@@ -7,6 +7,7 @@ import TablaIncidencias from '@/Components/TablaIncidencias';
 import TablaUltimoDia from '@/Components/TablaUltimoDia';
 import SeguimientoDiarioModal from '@/Components/SeguimientoDiarioModal';
 import JornadaAMPMModal from '@/Components/JornadaAMPMModal';
+import TopCanalesModal from '@/Components/TopCanalesModal';
 import TablaIncidenciasModal from '@/Components/TablaIncidenciasModal';
 import TablaUltimoDiaModal from '@/Components/TablaUltimoDiaModal';
 import TopCanales from '@/Components/TopCanales';
@@ -226,13 +227,13 @@ export default function ReportesCanal({ auth }: PageProps) {
             <JornadaAMPMModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.jornada} />
           )}
           {modalType === 'topCanales' && (
-            <TopCanales show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.topCanales} />
+            <TopCanalesModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.topCanales} />
           )}
           {modalType === 'tablaIncidencias' && (
-            <TablaIncidenciasModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.incidencias} />
+            <TablaIncidencias show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.incidencias} />
           )}
           {modalType === 'tablaUltimoDia' && (
-            <TablaUltimoDiaModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.ultimoDia} />
+            <TablaUltimoDia show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.ultimoDia} />
           )}
         </main>
       </div>
