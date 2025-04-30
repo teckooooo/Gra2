@@ -54,8 +54,8 @@ export default function ReportesCanal({ auth }: PageProps) {
   const [fechaFin, setFechaFin] = useState<string>('');
   const [errorFechas, setErrorFechas] = useState<string | null>(null);
 
-  const cableColorZonas = ['Combarbalá', 'Monte Patria', 'Ovalle','Illapel', 'Salamanca', 'Vicuña'];
-  const tvRedZonas = ['Puerto Natales', 'Punta Arenas'];
+  const cableColorZonas = ['General CableColor','Combarbalá', 'Monte Patria', 'Ovalle','Illapel', 'Salamanca', 'Vicuña'];
+  const tvRedZonas = ['General TVRed','Puerto Natales', 'Punta Arenas'];
 
   useEffect(() => {
     if (props.fechaInicio && props.fechaFin) {
@@ -68,14 +68,23 @@ export default function ReportesCanal({ auth }: PageProps) {
   const cargarDatos = (zona: string, inicio: string, fin: string) => {
     setLoading(true);
     const zonaSlug = convertirASlug(zona);
-
-    router.visit(`/reportes/cablecolor/${zonaSlug}?fecha_inicio=${inicio}&fecha_fin=${fin}`, {
+  
+    const isGeneral = zonaSlug === 'general_cablecolor' || zonaSlug === 'general_tvred';
+  
+    const ruta = isGeneral
+      ? zonaSlug === 'general_cablecolor'
+        ? '/reportes/general/cablecolor'
+        : '/reportes/general/tvred'
+      : `/reportes/cablecolor/${zonaSlug}?fecha_inicio=${inicio}&fecha_fin=${fin}`;
+  
+    router.visit(ruta, {
       only: ['datosReporte', 'fechaInicio', 'fechaFin'],
       preserveState: true,
       replace: true,
       onFinish: () => setLoading(false),
     });
   };
+  
 
   const handleZonaSeleccionada = (zona: string) => {
     setZonaSeleccionada(zona);
@@ -230,10 +239,10 @@ export default function ReportesCanal({ auth }: PageProps) {
             <TopCanalesModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.topCanales} />
           )}
           {modalType === 'tablaIncidencias' && (
-            <TablaIncidencias show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.incidencias} />
+            <TablaIncidenciasModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.incidencias} />
           )}
           {modalType === 'tablaUltimoDia' && (
-            <TablaUltimoDia show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.ultimoDia} />
+            <TablaUltimoDiaModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.ultimoDia} />
           )}
         </main>
       </div>

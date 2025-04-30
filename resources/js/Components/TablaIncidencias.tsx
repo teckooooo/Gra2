@@ -11,37 +11,33 @@ export default function TablaIncidencias({ show, onClose, datos }: TablaIncidenc
   const contenido = (
     <div className="overflow-x-auto">
       <h3 className="text-lg font-semibold mb-4">Incidencias</h3>
-      <table className="min-w-full text-sm text-left">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="py-2 px-4">Incidencia</th>
-            <th className="py-2 px-4">Cantidad</th>
-            <th className="py-2 px-4">%</th>
-          </tr>
-        </thead>
-        <tbody>
-          {datos.map((item, index) => (
-            <tr key={index} className="border-t">
-              <td className="py-2 px-4">{item.nombre}</td>
-              <td className="py-2 px-4">{item.cantidad}</td>
-              <td className="py-2 px-4">{item.porcentaje}</td>
+      <div className="max-h-[400px] overflow-y-auto rounded border">
+        <table className="min-w-full text-sm text-left">
+          <thead className="bg-gray-100 sticky top-0 z-10">
+            <tr>
+              <th className="py-2 px-4">Incidencia</th>
+              <th className="py-2 px-4">Cantidad</th>
+              <th className="py-2 px-4">%</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {datos.map((item, index) => (
+              <tr key={index} className="border-t">
+                <td className="py-2 px-4">{item.nombre}</td>
+                <td className="py-2 px-4">{item.cantidad}</td>
+                <td className="py-2 px-4">{item.porcentaje}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
   if (!show) {
-    // Mostrar directamente en la grilla
-    return (
-      <div className="w-full h-full">
-        {contenido}
-      </div>
-    );
+    return <div className="w-full h-full">{contenido}</div>;
   }
 
-  // Mostrar en un Modal
   return (
     <Transition appear show={show} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>

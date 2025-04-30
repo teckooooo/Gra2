@@ -11,37 +11,33 @@ export default function TablaUltimoDia({ show, onClose, datos }: TablaUltimoDiaP
   const contenido = (
     <div className="overflow-x-auto">
       <h3 className="text-lg font-semibold mb-4">Último Día</h3>
-      <table className="min-w-full text-sm text-left">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="py-2 px-4">Canal</th>
-            <th className="py-2 px-4">Fecha</th>
-            <th className="py-2 px-4">Incidencia</th>
-          </tr>
-        </thead>
-        <tbody>
-          {datos.map((item, index) => (
-            <tr key={index} className="border-t">
-              <td className="py-2 px-4">{item.canal}</td>
-              <td className="py-2 px-4">{item.fecha}</td>
-              <td className="py-2 px-4">{item.incidencia}</td>
+      <div className="max-h-[400px] overflow-y-auto rounded border">
+        <table className="min-w-full text-sm text-left">
+          <thead className="bg-gray-100 sticky top-0 z-10">
+            <tr>
+              <th className="py-2 px-4">Canal</th>
+              <th className="py-2 px-4">Fecha</th>
+              <th className="py-2 px-4">Incidencia</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {datos.map((item, index) => (
+              <tr key={index} className="border-t">
+                <td className="py-2 px-4">{item.canal}</td>
+                <td className="py-2 px-4">{item.fecha}</td>
+                <td className="py-2 px-4">{item.incidencia}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
   if (!show) {
-    // Mostrar directamente en la vista
-    return (
-      <div className="w-full h-full">
-        {contenido}
-      </div>
-    );
+    return <div className="w-full h-full">{contenido}</div>;
   }
 
-  // Mostrar dentro de Modal
   return (
     <Transition appear show={show} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>

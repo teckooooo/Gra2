@@ -44,14 +44,19 @@ class ReportesCableColorController extends Controller
         $tabla = $zonasMap[$zona];
 
         if ($fechaInicio && $fechaFin) {
-            $query = DB::table($tabla)
-                ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
+            $fechasReales = DB::table($tabla)
+                ->selectRaw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_real")
+                ->whereNotNull('fecha')
                 ->whereBetween(DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y')"), [
                     DB::raw("STR_TO_DATE('$fechaInicio', '%d/%m/%Y')"),
                     DB::raw("STR_TO_DATE('$fechaFin', '%d/%m/%Y')"),
                 ])
-                ->orderBy('fecha_ordenada', 'asc')
-                ->get();
+                ->distinct()
+                ->pluck('fecha_real')
+                ->map(fn($f) => Carbon::parse($f)->format('Y-m-d'))
+                ->sort()
+                ->values()
+                ->toArray();
         } else {
             $fechasReales = DB::table($tabla)
                 ->selectRaw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_real")
@@ -64,13 +69,13 @@ class ReportesCableColorController extends Controller
                 ->sort()
                 ->values()
                 ->toArray();
-
-            $query = DB::table($tabla)
-                ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
-                ->whereIn(DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y')"), $fechasReales)
-                ->orderBy('fecha_ordenada', 'asc')
-                ->get();
         }
+
+        $query = DB::table($tabla)
+            ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
+            ->whereIn(DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y')"), $fechasReales)
+            ->orderBy('fecha_ordenada', 'asc')
+            ->get();
 
         $datos = collect($query)->map(function ($fila) {
             $fila->fecha = Carbon::createFromFormat('Y-m-d', $fila->fecha_ordenada)->format('d/m/Y');
@@ -82,7 +87,7 @@ class ReportesCableColorController extends Controller
             'topCanales' => $this->generarTopCanales($datos),
             'jornada' => $this->generarJornadaAMPM($datos),
             'incidencias' => $this->generarTablaIncidencias($datos),
-            'ultimoDia' => $this->generarTablaUltimoDia($datos),
+            'ultimoDia' => $this->generarTablaUltimoDia($datos, $fechasReales),
         ];
 
         if ($esVistaInertia) {
@@ -92,25 +97,82 @@ class ReportesCableColorController extends Controller
         return $datosReporte;
     }
 
+    public function obtenerReporteGeneral($tipo)
+    {
+        $zonasCableColor = [
+            'sheet_combarbala',
+            'sheet_monte_patria',
+            'sheet_ovalle',
+            'sheet_salamanca',
+            'sheet_illapel',
+            'sheet_vicuna',
+        ];
+
+        $zonasTvRed = [
+            'sheet_puerto_natales',
+            'sheet_punta_arenas',
+        ];
+
+        $tablas = $tipo === 'tvred' ? $zonasTvRed : $zonasCableColor;
+
+        $datos = collect();
+
+        foreach ($tablas as $tabla) {
+            $query = DB::table($tabla)
+                ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
+                ->whereNotNull('fecha')
+                ->get()
+                ->map(function ($fila) {
+                    $fila->fecha = Carbon::createFromFormat('Y-m-d', $fila->fecha_ordenada)->format('d/m/Y');
+                    return $fila;
+                });
+
+            $datos = $datos->merge($query);
+        }
+
+        $fechasReales = $datos
+            ->pluck('fecha')
+            ->map(fn($f) => Carbon::createFromFormat('d/m/Y', $f)->format('Y-m-d'))
+            ->unique()
+            ->sortDesc()
+            ->take(15)
+            ->sort()
+            ->map(fn($f) => Carbon::parse($f)->format('d/m/Y'))
+            ->values()
+            ->toArray();
+
+        $datosFiltrados = $datos->filter(fn($fila) => in_array($fila->fecha, $fechasReales))->values();
+
+        return Inertia::render('reportesCanal', [
+            'datosReporte' => [
+                'seguimiento' => $this->generarSeguimientoDiario($datosFiltrados),
+                'topCanales' => $this->generarTopCanales($datosFiltrados),
+                'jornada' => $this->generarJornadaAMPM($datosFiltrados),
+                'incidencias' => $this->generarTablaIncidencias($datosFiltrados),
+                'ultimoDia' => $this->generarTablaUltimoDia($datosFiltrados, $fechasReales),
+            ],
+        ]);
+    }
+
     private function generarSeguimientoDiario($datos)
     {
         $conteoIncidencias = [];
         $fechasReales = [];
-    
+
         foreach ($datos as $fila) {
             $fecha = $fila->fecha;
-            $fechaCarbon = Carbon::createFromFormat('d/m/Y', $fecha)->format('Y-m-d'); // clave para ordenar
-            $fechasReales[$fechaCarbon] = $fecha; // usamos el formato ISO para orden, pero conservamos original
-    
+            $fechaCarbon = Carbon::createFromFormat('d/m/Y', $fecha)->format('Y-m-d');
+            $fechasReales[$fechaCarbon] = $fecha;
+
             $incidencia = trim($fila->incidencia ?? '');
             if ($incidencia === '') continue;
-    
+
             $conteoIncidencias[$incidencia][$fecha] = ($conteoIncidencias[$incidencia][$fecha] ?? 0) + 1;
         }
-    
-        ksort($fechasReales); // orden cronológico real
-        $labels = array_values($fechasReales); // conservamos el formato original
-    
+
+        ksort($fechasReales);
+        $labels = array_values($fechasReales);
+
         $datasets = [];
         foreach ($conteoIncidencias as $incidencia => $frecuencias) {
             $datasets[] = [
@@ -119,25 +181,24 @@ class ReportesCableColorController extends Controller
                 'backgroundColor' => $this->colorIncidencia($incidencia),
             ];
         }
-    
+
         return [
             'data' => ['labels' => $labels, 'datasets' => $datasets],
             'options' => ['responsive' => true],
         ];
     }
-    
 
     private function generarJornadaAMPM($datos)
     {
         $conteoAM = [];
         $conteoPM = [];
         $fechasReales = [];
-    
+
         foreach ($datos as $fila) {
             $fecha = $fila->fecha;
             $fechaCarbon = Carbon::createFromFormat('d/m/Y', $fecha)->format('Y-m-d');
             $fechasReales[$fechaCarbon] = $fecha;
-    
+
             $jornada = strtoupper($fila->jornada ?? 'AM');
             if ($jornada === 'AM') {
                 $conteoAM[$fecha] = ($conteoAM[$fecha] ?? 0) + 1;
@@ -145,10 +206,10 @@ class ReportesCableColorController extends Controller
                 $conteoPM[$fecha] = ($conteoPM[$fecha] ?? 0) + 1;
             }
         }
-    
+
         ksort($fechasReales);
         $labels = array_values($fechasReales);
-    
+
         return [
             'data' => [
                 'labels' => $labels,
@@ -168,7 +229,6 @@ class ReportesCableColorController extends Controller
             'options' => ['responsive' => true],
         ];
     }
-    
 
     private function generarTablaIncidencias($datos)
     {
@@ -195,13 +255,15 @@ class ReportesCableColorController extends Controller
         return $tabla;
     }
 
-    private function generarTablaUltimoDia($datos)
+    private function generarTablaUltimoDia($datos, $fechasValidas)
     {
+        $fechasFormateadas = collect($fechasValidas)
+            ->map(fn($f) => Carbon::parse($f)->format('d/m/Y'))
+            ->toArray();
+    
         return collect($datos)
-            ->sortBy(function ($fila) {
-                return Carbon::createFromFormat('d/m/Y', $fila->fecha)->timestamp;
-            })
-            ->take(10)
+            ->filter(fn($fila) => in_array($fila->fecha, $fechasFormateadas))
+            ->sortByDesc(fn($fila) => Carbon::createFromFormat('d/m/Y', $fila->fecha)->timestamp)
             ->map(fn($fila) => [
                 'canal' => $fila->canal,
                 'fecha' => $fila->fecha,
@@ -290,4 +352,6 @@ class ReportesCableColorController extends Controller
             ],
         ];
     }
+
+
 }

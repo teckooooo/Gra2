@@ -94,6 +94,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reportes/cablecolor/puerto_natales', [ReportesCableColorController::class, 'puertoNatales'])->name('reportes.puerto_natales');
     Route::get('/reportes/cablecolor/punta_arenas', [ReportesCableColorController::class, 'puntaArenas'])->name('reportes.punta_arenas');
 });
+Route::get('/reportes/general/cablecolor', [ReportesCableColorController::class, 'obtenerReporteGeneral'])->name('reportes.general.cablecolor')->defaults('tipo', 'cablecolor');
+
+Route::get('/reportes/general/tvred', [ReportesCableColorController::class, 'obtenerReporteGeneral'])->name('reportes.general.tvred')->defaults('tipo', 'tvred');
 
 
 Route::get('/reportesComercial', function () {
