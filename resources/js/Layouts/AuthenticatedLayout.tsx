@@ -46,9 +46,9 @@ export default function Authenticated({ auth, header, children }: LayoutProps) {
                                     </NavLink>
                                 )}
                                 {permisos.includes('Acceso a Módulo Comercial') && (
-                                    <NavLink href={route('nueva.vista')} active={route().current('nueva.vista')}>
-                                        Módulo Comercial
-                                    </NavLink>
+                                    <NavLink href={route('comercial')} active={route().current('comercial')}>
+                                    Módulo Comercial
+                                </NavLink>
                                 )}
                                 {permisos.includes('Acceso a Reportes Canal') && (
                                     <NavLink href={route('reportesCanal')} active={route().current('reportesCanal')}>
@@ -130,9 +130,9 @@ export default function Authenticated({ auth, header, children }: LayoutProps) {
                             </ResponsiveNavLink>
                         )}
                         {permisos.includes('Acceso a Módulo Comercial') && (
-                            <ResponsiveNavLink href={route('nueva.vista')} active={route().current('nueva.vista')}>
-                                Módulo Comercial
-                            </ResponsiveNavLink>
+                            <NavLink href={route('comercial')} active={route().current('comercial')}>
+                            Módulo Comercial
+                        </NavLink>
                         )}
                         {permisos.includes('Acceso a Reportes Canal') && (
                             <ResponsiveNavLink href={route('reportesCanal')} active={route().current('reportesCanal')}>

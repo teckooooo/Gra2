@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ImportarExcelController;
 use App\Http\Controllers\ReportesCableColorController;
 use App\Http\Controllers\GrillaCanalesController;
+use App\Http\Controllers\ComercialController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 
@@ -55,6 +56,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/roles/{role}/permisos', [PermisoController::class, 'getPermisosPorRol']);
     Route::post('/roles/{role}/permisos', [PermisoController::class, 'asignarPermisos'])->name('roles.asignarPermisos');
     Route::post('/roles/{role}/permisos', [PermisoController::class, 'asignarPermisos']);
+    
 
     //Base de datos
     Route::post('/importar-excel', [ImportarExcelController::class, 'importar']);
@@ -76,11 +78,22 @@ Route::get('/grilla/{zona}', [GrillaCanalesController::class, 'show'])->name('gr
 Route::put('/grilla/{zona}/{id}', [GrillaCanalesController::class, 'update'])->name('grilla.zona.update');
 Route::post('/grilla/{zona}/store', [GrillaCanalesController::class, 'store'])->name('grilla.zona.store');
 
-
+/* Comercial*/
 Route::get('/comercial', function () {
-    return Inertia::render('comercial');
-})->middleware(['auth', 'verified'])->name('nueva.vista');
+    return Inertia::render('Comercial', [
+        'tipo' => null,
+        'registros' => [],
+    ]);
+})->middleware(['auth'])->name('comercial');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/comercial', [ComercialController::class, 'inicio'])->name('comercial');
+    Route::get('/comercial/{tipo}', [ComercialController::class, 'index'])->name('comercial.vista');
+    Route::post('/comercial/{tipo}', [ComercialController::class, 'store'])->name('comercial.store');
+    Route::put('/comercial/{tipo}/{id}', [ComercialController::class, 'update'])->name('comercial.update');
+});
 
+
+/*-----------------*/
 Route::get('/reportesCanal', function () {
     return Inertia::render('reportesCanal');
 })->middleware(['auth', 'verified'])->name('reportesCanal');
