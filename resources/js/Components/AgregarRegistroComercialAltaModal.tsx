@@ -1,6 +1,7 @@
-// ✅ AgregarRegistroComercialAltaModal.tsx
-import { useState } from 'react';
-import { router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { router, usePage } from '@inertiajs/react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface AgregarRegistroModalProps {
     tipo: 'altas' | 'bajas';
@@ -8,8 +9,14 @@ interface AgregarRegistroModalProps {
     onClose: () => void;
 }
 
+interface Errors {
+    [key: string]: string;
+}
+
 export default function AgregarRegistroComercialAltaModal({ tipo, isOpen, onClose }: AgregarRegistroModalProps) {
     const [formData, setFormData] = useState<Record<string, string>>({});
+    const [fechaPeriodo, setFechaPeriodo] = useState<Date | null>(new Date());
+    const [errors, setErrors] = useState<Errors>({});
 
     const camposAltas = ['ejecutivo', 'tipo_ot', 'cantidad', 'sucursal', 'periodo'];
     const camposBajas = ['comuna', 'cliente', 'fecha_de_termino', 'nombre', 'direccion', 'plan', 'valor', 'telefono1', 'telefono2'];
@@ -20,12 +27,41 @@ export default function AgregarRegistroComercialAltaModal({ tipo, isOpen, onClos
         setFormData(prev => ({ ...prev, [campo]: valor }));
     };
 
+    useEffect(() => {
+        if (tipo === 'altas' && fechaPeriodo instanceof Date) {
+            const formatter = new Intl.DateTimeFormat('es-CL', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+    
+            const parts = formatter.formatToParts(fechaPeriodo);
+            const dia = parts.find(p => p.type === 'day')?.value;
+            const mes = parts.find(p => p.type === 'month')?.value;
+            const anio = parts.find(p => p.type === 'year')?.value;
+    
+            if (dia && mes && anio) {
+                const formatted = `${dia}/${mes}/${anio}`;
+                const campoFecha = tipo === 'altas' ? 'periodo' : 'fecha_de_termino';
+                setFormData(prev => ({ ...prev, [campoFecha]: formatted }));
+            }
+        }
+    }, [fechaPeriodo]);
+    
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        setErrors({}); // Limpiar errores anteriores
+
         router.post(route('comercial.store', { tipo }), formData, {
             onSuccess: () => {
                 setFormData({});
                 onClose();
+                router.visit(route('comercial.vista', { tipo }), { preserveScroll: true });
+            },
+            onError: (err) => {
+                setErrors(err);
+                console.error('Errores del servidor:', err);
             },
         });
     };
@@ -38,15 +74,34 @@ export default function AgregarRegistroComercialAltaModal({ tipo, isOpen, onClos
                 <h2 className="text-xl font-bold mb-4">Agregar Registro ({tipo})</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {campos.map((campo) => (
-                        <div key={campo}>
-                            <label className="block font-medium text-sm text-gray-700 capitalize">{campo.replace(/_/g, ' ')}</label>
-                            <input
-                                type="text"
-                                value={formData[campo] || ''}
-                                onChange={(e) => handleChange(campo, e.target.value)}
-                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                            />
-                        </div>
+                        campo === 'periodo' && tipo === 'altas' ? (
+                            <div key={campo}>
+                                <label className="block font-medium text-sm text-gray-700 capitalize">{campo.replace(/_/g, ' ')}</label>
+                                <DatePicker
+                                    selected={fechaPeriodo}
+                                    onChange={(date) => setFechaPeriodo(date)}
+                                    dateFormat="dd/MM/yyyy"
+                                    className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
+                                />
+                                {errors[campo] && <p className="text-red-500 text-sm">{errors[campo]}</p>}
+                            </div>
+                        ) : (
+                            <div key={campo}>
+                                <label className="block font-medium text-sm text-gray-700 capitalize">{campo.replace(/_/g, ' ')}</label>
+                                <input
+                                    type="text"
+                                    value={formData[campo] || ''}
+                                    onChange={(e) => {
+                                        const valor = campo === 'cantidad' || campo === 'valor'
+                                            ? (parseInt(e.target.value) || '').toString()
+                                            : e.target.value;
+                                        handleChange(campo, valor);
+                                    }}
+                                    className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
+                                />
+                                {errors[campo] && <p className="text-red-500 text-sm">{errors[campo]}</p>}
+                            </div>
+                        )
                     ))}
                     <div className="flex justify-end gap-2 pt-4">
                         <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400">Cancelar</button>

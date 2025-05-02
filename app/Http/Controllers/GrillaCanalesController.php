@@ -32,33 +32,24 @@ class GrillaCanalesController extends Controller
             fn($col) => !in_array($col, ['created_at', 'updated_at'])
         );
 
-        // Obtener y formatear fecha
-        $datos = DB::table($tabla)
+        $perPage = request()->input('perPage', 50);
+
+        $datosPaginados = DB::table($tabla)
             ->select($columnas)
             ->whereNotNull('fecha')
-            ->get()
-            ->map(function ($item) {
-                // Reemplaza guiones por slash si es necesario
-                $item->fecha = str_replace('-', '/', $item->fecha);
+            ->orderByRaw("STR_TO_DATE(fecha, '%d/%m/%Y') DESC")
+            ->paginate($perPage)
+            ->withQueryString();
 
-                // Si la fecha viene como yyyy/mm/dd, convertirla a dd/mm/yyyy
-                if (preg_match('/^\d{4}\/\d{2}\/\d{2}$/', $item->fecha)) {
-                    $partes = explode('/', $item->fecha);
-                    $item->fecha = "{$partes[2]}/{$partes[1]}/{$partes[0]}";
-                }
+        $datosPaginados->getCollection()->transform(function ($item) {
+            $item->fecha = str_replace('-', '/', $item->fecha);
+            if (preg_match('/^\d{4}\/\d{2}\/\d{2}$/', $item->fecha)) {
+                $partes = explode('/', $item->fecha);
+                $item->fecha = "{$partes[2]}/{$partes[1]}/{$partes[0]}";
+            }
+            return $item;
+        });
 
-                return $item;
-            })
-            ->filter(function ($item) {
-                return collect($item)->filter(fn($val) => !is_null($val) && trim((string)$val) !== '')->isNotEmpty();
-            })
-            ->sortByDesc(function ($item) {
-                $fechaParts = explode('/', $item->fecha); // dd/mm/yyyy
-                return \Carbon\Carbon::createFromFormat('d/m/Y', $item->fecha);
-            })
-            ->values();
-
-        // Lista única de canales
         $canales = DB::table('sheet_canales')
             ->select('canal')
             ->whereNotNull('canal')
@@ -73,16 +64,16 @@ class GrillaCanalesController extends Controller
             ->sort()
             ->values();
 
-        // Lista de incidencias
         $incidencias = DB::table('incidence')->pluck('nombre')->unique()->sort()->values();
 
         return Inertia::render('Dashboard', [
             'zona' => strtolower($zona),
-            'datos' => $datos,
+            'datos' => $datosPaginados,
             'canales' => $canales,
             'incidencias' => $incidencias,
         ]);
     }
+
 
     public function update(Request $request, $zona, $id)
     {

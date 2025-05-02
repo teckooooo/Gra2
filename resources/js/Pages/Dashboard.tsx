@@ -9,9 +9,22 @@ interface Canal {
     [key: string]: any;
 }
 
+interface Pagination<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    links: {
+        url: string | null;
+        label: string;
+        active: boolean;
+    }[];
+}
+
 interface PageProps {
     zona?: string;
-    datos?: Canal[];
+    datos?: Pagination<Canal>; 
     auth: {
         user: {
             id: number;
@@ -26,33 +39,23 @@ interface PageProps {
     [key: string]: any;
 }
 
+
 const toSlug = (nombre: string) =>
     nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/ /g, '_');
 
 export default function Dashboard() {
-    const { zona, datos = [], auth, canales = [], incidencias = [] } = usePage<PageProps>().props;
+    const { zona, datos, auth, canales = [], incidencias = [] } = usePage<PageProps>().props;
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editData, setEditData] = useState<Partial<Canal>>({});
     const [modalOpen, setModalOpen] = useState(false);
+    const [perPage, setPerPage] = useState(datos?.per_page ?? 50);
 
-    const zonas = ['Combarbalá', 'Monte Patria', 'Ovalle','Illapel', 'Puerto Natales', 'Punta Arenas', 'Salamanca', 'Vicuña'];
+    const zonas = ['Combarbalá', 'Monte Patria', 'Ovalle', 'Illapel', 'Puerto Natales', 'Punta Arenas', 'Salamanca', 'Vicuña'];
     const zonaMap = Object.fromEntries(zonas.map(z => [toSlug(z), z]));
 
-    const columnas = datos.length > 0
-        ? Object.keys(datos[0]).filter(key => !['created_at', 'updated_at', 'id'].includes(key))
+    const columnas = Array.isArray(datos?.data) && datos.data.length > 0
+        ? Object.keys(datos.data[0]).filter(key => !['created_at', 'updated_at', 'id'].includes(key))
         : [];
-
-    const filas = datos
-        .filter(fila =>
-            columnas.some(col => fila[col] !== null && fila[col] !== '')
-        )
-        .sort((a, b) => {
-            const parseFecha = (fecha: string) => {
-                const [dd, mm, yyyy] = (fecha ?? '').split('/');
-                return new Date(`${yyyy}-${mm}-${dd}`);
-            };
-            return parseFecha(b.fecha).getTime() - parseFecha(a.fecha).getTime();
-        });
 
     const handleEditClick = (idx: number, fila: Canal) => {
         setEditIndex(idx);
@@ -120,8 +123,29 @@ export default function Dashboard() {
                         </button>
                     </div>
 
-                    {zona && filas.length > 0 ? (
+                    {zona && Array.isArray(datos?.data) && datos.data.length > 0 ? (
+
                         <div className="overflow-auto border rounded bg-white p-4 shadow">
+                            <div className="mb-4 flex items-center gap-2">
+                                <label className="font-medium">Registros por página:</label>
+                                <select
+                                    value={perPage}
+                                    onChange={(e) => {
+                                        const cantidad = Number(e.target.value);
+                                        setPerPage(cantidad);
+                                        router.visit(route('grilla.zona', zona), {
+                                            data: { perPage: cantidad },
+                                            preserveScroll: true,
+                                        });
+                                    }}
+                                    className="w-20 border rounded px-2 py-1" // 👈 solución aplicada
+                                >
+                                    {[50, 70, 100].map(n => (
+                                        <option key={n} value={n}>{n}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             <table className="min-w-full border-collapse text-sm text-gray-700">
                                 <thead>
                                     <tr>
@@ -133,66 +157,48 @@ export default function Dashboard() {
                                         <th className="border px-4 py-2 bg-gray-100">Acciones</th>
                                     </tr>
                                 </thead>
-
                                 <tbody>
-                                    {filas.map((fila, idx) => (
+                                    {datos.data.map((fila, idx) => (
                                         <tr key={fila.id}>
                                             {columnas.map(col => (
                                                 <td key={col} className="border px-4 py-2">
                                                     {editIndex === idx ? (
                                                         col === 'formato' && ['punta_arenas', 'puerto_natales'].includes(zona ?? '') ? (
-                                                        <select
-                                                        value={editData[col]}
-                                                        onChange={(e) => handleChange(col, e.target.value)}
-                                                        className="w-full border rounded px-2 py-1"
-                                                        >
-                                                        <option value="DECO">DECO</option>
-                                                        <option value="Analoga">Analoga</option>
-                                                        </select>
-                                                    ) : col === 'canal' ? (
-                                                        <Select
-                                                        options={canales.map(c => ({ value: c, label: c }))}
-                                                        value={{ value: editData[col] ?? '', label: editData[col] ?? '' }}
-                                                        onChange={(e) => handleChange(col, e?.value || '')}
-                                                        />
-                                                    ) : col === 'incidencia' ? (
-                                                        <Select
-                                                        options={incidencias.map(i => ({ value: i, label: i }))}
-                                                        value={{ value: editData[col] ?? '', label: editData[col] ?? '' }}
-                                                        onChange={(e) => handleChange(col, e?.value || '')}
-                                                        />
-                                                    ) : col === 'jornada' ? (
-                                                        <select
-                                                        value={editData[col]}
-                                                        onChange={(e) => handleChange(col, e.target.value)}
-                                                        className="w-full border rounded px-2 py-1"
-                                                        >
-                                                        <option value="AM">AM</option>
-                                                        <option value="PM">PM</option>
-                                                        </select>
-                                                    ) : col === 'comuna' ? (
-                                                        <select
-                                                        value={editData[col]}
-                                                        onChange={(e) => handleChange(col, e.target.value)}
-                                                        className="w-full border rounded px-2 py-1"
-                                                        >
-                                                        {zonas.map(z => (
-                                                            <option key={z} value={z}>{z}</option>
-                                                        ))}
-                                                        </select>
-                                                    ) : (
-                                                        <input
-                                                        value={editData[col] ?? ''}
-                                                        onChange={(e) => handleChange(col, e.target.value)}
-                                                        className="w-full border rounded px-2 py-1"
-                                                        />
-                                                    )
+                                                            <select value={editData[col]} onChange={(e) => handleChange(col, e.target.value)} className="w-full border rounded px-2 py-1">
+                                                                <option value="DECO">DECO</option>
+                                                                <option value="Analoga">Analoga</option>
+                                                            </select>
+                                                        ) : col === 'canal' ? (
+                                                            <Select
+                                                                options={canales.map(c => ({ value: c, label: c }))}
+                                                                value={{ value: editData[col] ?? '', label: editData[col] ?? '' }}
+                                                                onChange={(e) => handleChange(col, e?.value || '')}
+                                                            />
+                                                        ) : col === 'incidencia' ? (
+                                                            <Select
+                                                                options={incidencias.map(i => ({ value: i, label: i }))}
+                                                                value={{ value: editData[col] ?? '', label: editData[col] ?? '' }}
+                                                                onChange={(e) => handleChange(col, e?.value || '')}
+                                                            />
+                                                        ) : col === 'jornada' ? (
+                                                            <select value={editData[col]} onChange={(e) => handleChange(col, e.target.value)} className="w-full border rounded px-2 py-1">
+                                                                <option value="AM">AM</option>
+                                                                <option value="PM">PM</option>
+                                                            </select>
+                                                        ) : col === 'comuna' ? (
+                                                            <select value={editData[col]} onChange={(e) => handleChange(col, e.target.value)} className="w-full border rounded px-2 py-1">
+                                                                {zonas.map(z => (
+                                                                    <option key={z} value={z}>{z}</option>
+                                                                ))}
+                                                            </select>
+                                                        ) : (
+                                                            <input value={editData[col] ?? ''} onChange={(e) => handleChange(col, e.target.value)} className="w-full border rounded px-2 py-1" />
+                                                        )
                                                     ) : col.toLowerCase().includes('fecha') && typeof fila[col] === 'string'
-                                                    ? fila[col].replace(/-/g, '/')
-                                                    : fila[col]}
+                                                        ? fila[col].replace(/-/g, '/')
+                                                        : fila[col]}
                                                 </td>
-                                                ))}
-
+                                            ))}
                                             <td className="border px-4 py-2">
                                                 {editIndex === idx ? (
                                                     <button onClick={handleSave} className="text-green-600 hover:underline">Guardar</button>
@@ -204,6 +210,22 @@ export default function Dashboard() {
                                     ))}
                                 </tbody>
                             </table>
+
+                            <div className="flex justify-center mt-4 gap-2 flex-wrap">
+                                {datos.links.map((link, idx) => {
+                                    let label = link.label;
+                                    if (label.toLowerCase().includes('previous')) label = '←';
+                                    if (label.toLowerCase().includes('next')) label = '→';
+                                    return link.url ? (
+                                        <button
+                                            key={idx}
+                                            onClick={() => router.visit(link.url!)}
+                                            className={`px-3 py-1 border rounded ${link.active ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'}`}
+                                            dangerouslySetInnerHTML={{ __html: label }}
+                                        />
+                                    ) : null;
+                                })}
+                            </div>
                         </div>
                     ) : zona ? (
                         <div className="text-gray-500">No hay datos disponibles para esta zona.</div>

@@ -70,7 +70,6 @@ export default function GraficoPorcentajeIncidenciasModal({ show, onClose, datos
       },
       y: {
         stacked: true,
-        max: 100,
         ticks: {
           color: '#111',
           font: {
@@ -88,6 +87,7 @@ export default function GraficoPorcentajeIncidenciasModal({ show, onClose, datos
           },
         },
       },
+      
     },
   };
 

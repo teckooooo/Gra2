@@ -1,19 +1,32 @@
-// ✅ Comercial.tsx
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AgregarRegistroComercialAltaModal from '@/Components/AgregarRegistroComercialAltaModal';
-
 
 interface Registro {
     id: number;
     [key: string]: any;
 }
 
+interface Link {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface Paginacion<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    links: Link[];
+}
+
 interface PageProps {
     auth: any;
     tipo?: 'altas' | 'bajas';
-    registros: Registro[];
+    registros?: Paginacion<Registro>;
 }
 
 export default function Comercial({ auth, tipo, registros }: PageProps) {
@@ -21,13 +34,14 @@ export default function Comercial({ auth, tipo, registros }: PageProps) {
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editData, setEditData] = useState<Partial<Registro>>({});
     const [modalOpen, setModalOpen] = useState(false);
+    const [perPage, setPerPage] = useState<number>(registros?.per_page ?? 50);
 
-    const columnas = registros.length > 0
-        ? Object.keys(registros[0]).filter(c => !['id', 'created_at', 'updated_at'].includes(c))
+    const columnas = Array.isArray(registros?.data) && registros.data.length > 0
+        ? Object.keys(registros.data[0]).filter(c => !['id', 'created_at', 'updated_at'].includes(c))
         : [];
 
     const cambiarVista = (nuevoTipo: 'altas' | 'bajas') => {
-        router.visit(route('comercial.vista', { tipo: nuevoTipo }));
+        router.visit(route('comercial.vista', { tipo: nuevoTipo, perPage }));
     };
 
     const handleEditClick = (idx: number, fila: Registro) => {
@@ -46,9 +60,15 @@ export default function Comercial({ auth, tipo, registros }: PageProps) {
                 onSuccess: () => {
                     setEditIndex(null);
                     setEditData({});
+                    router.reload();
                 },
             });
         }
+    };
+
+    const cambiarCantidad = (cantidad: number) => {
+        setPerPage(cantidad);
+        router.visit(route('comercial.vista', { tipo: opcionActiva, perPage: cantidad }));
     };
 
     return (
@@ -57,7 +77,6 @@ export default function Comercial({ auth, tipo, registros }: PageProps) {
 
             <AgregarRegistroComercialAltaModal
                 tipo={(opcionActiva ?? 'altas') as 'altas' | 'bajas'}
-
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}
             />
@@ -81,7 +100,7 @@ export default function Comercial({ auth, tipo, registros }: PageProps) {
                 </aside>
 
                 <main className="flex-1 bg-white rounded-xl shadow p-6 overflow-auto">
-                    {opcionActiva ? (
+                    {opcionActiva && registros?.data ? (
                         <>
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-xl font-bold capitalize">Registros de {opcionActiva}</h3>
@@ -91,6 +110,21 @@ export default function Comercial({ auth, tipo, registros }: PageProps) {
                                 >
                                     + Agregar Registro
                                 </button>
+                            </div>
+
+                            <div className="mb-4 flex items-center gap-2">
+                                <div className="mb-4 flex items-center gap-2">
+                                    <label className="font-medium">Registros por página:</label>
+                                    <select
+                                        value={perPage}
+                                        onChange={(e) => cambiarCantidad(Number(e.target.value))}
+                                        className="w-20 border rounded px-2 py-1" // ✅ solución aplicada
+                                    >
+                                        {[50, 70, 100].map(n => (
+                                            <option key={n} value={n}>{n}</option>
+                                        ))}
+                                    </select>
+                                </div> 
                             </div>
 
                             <table className="min-w-full border text-sm text-gray-700">
@@ -105,7 +139,7 @@ export default function Comercial({ auth, tipo, registros }: PageProps) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {registros.map((fila, idx) => (
+                                    {registros.data.map((fila, idx) => (
                                         <tr key={fila.id}>
                                             {columnas.map(col => (
                                                 <td key={col} className="border px-4 py-2">
@@ -131,6 +165,23 @@ export default function Comercial({ auth, tipo, registros }: PageProps) {
                                     ))}
                                 </tbody>
                             </table>
+
+                            <div className="flex justify-center mt-4 gap-2 flex-wrap">
+                                {registros.links.map((link, index) => {
+                                    let label = link.label;
+                                    if (label.toLowerCase().includes('previous')) label = '←';
+                                    if (label.toLowerCase().includes('next')) label = '→';
+
+                                    return link.url ? (
+                                        <button
+                                            key={index}
+                                            onClick={() => router.visit(link.url!)}
+                                            className={`px-3 py-1 border rounded ${link.active ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'}`}
+                                            dangerouslySetInnerHTML={{ __html: label }}
+                                        />
+                                    ) : null;
+                                })}
+                            </div>
                         </>
                     ) : (
                         <div className="text-center text-gray-500 text-lg font-medium mt-20">

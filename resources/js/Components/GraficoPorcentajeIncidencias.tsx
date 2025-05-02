@@ -77,11 +77,10 @@ export default function GraficoPorcentajeIncidencias({ datos, show }: Props) {
       },
       y: {
         stacked: true,
-        max: 100,
         ticks: {
           color: '#111',
           font: {
-            size: 13,
+            size: 14,
           },
           callback: (value: number) => `${value}%`,
         },
@@ -95,6 +94,7 @@ export default function GraficoPorcentajeIncidencias({ datos, show }: Props) {
           },
         },
       },
+      
     },
   };
 

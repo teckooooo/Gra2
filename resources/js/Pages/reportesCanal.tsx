@@ -275,26 +275,24 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
 
           {zonaSeleccionada && esZonaGeneral && (
             <div className="flex justify-end mb-4">
-              <div className="flex items-center gap-2">
-                <label className="font-semibold text-gray-700">Año:</label>
-                <select
-  value={anioSeleccionado}
-  onChange={(e) => {
-    const valor = e.target.value;
-    setAnioSeleccionado(valor); // solo setea, no llama cargarDatos aquí
-  }}
-  className="border px-3 py-1 rounded"
->
-  <option value="">Todos</option>
-  {aniosDisponibles.map((anio) => (
-    <option key={anio} value={anio}>{anio}</option>
-  ))}
-</select>
+  <div className="flex items-center gap-2">
+    <label className="font-semibold text-gray-700">Año:</label>
+    <select
+      value={anioSeleccionado}
+      onChange={(e) => {
+        const valor = e.target.value;
+        setAnioSeleccionado(valor); // solo setea, no llama cargarDatos aquí
+      }}
+      className="w-24 border px-3 py-1 rounded" // ✅ ancho mínimo aplicado
+    >
+      <option value="">Todos</option>
+      {aniosDisponibles.map((anio) => (
+        <option key={anio} value={anio}>{anio}</option>
+      ))}
+    </select>
+  </div>
+</div>
 
-
-
-              </div>
-            </div>
           )}
 
           {zonaSeleccionada && !esZonaGeneral && (
