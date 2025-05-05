@@ -19,12 +19,23 @@ import GraficoPorcentajeIncidenciasModal from '@/Components/GraficoPorcentajeInc
 import TablaResumenCanalesModal from '@/Components/TablaResumenCanalesModal';
 import TablaResumenIncidenciasModal from '@/Components/TablaResumenIncidenciasModal';
 
+interface ZonaData {
+  seguimiento?: any;
+  jornada?: any;
+  topCanales?: any;
+  incidencias?: any;
+  ultimoDia?: any;
+  resumenCanales?: any;
+  resumenIncidencias?: any;
+  porcentajeIncidencias?: any;
+}
+
 
 interface PageProps {
   auth: any;
   fechaInicio?: string;
   fechaFin?: string;
-  datosReporte?: any;
+  datosReporte?: Record<string, ZonaData>;
   aniosDisponibles?: string[];
   anioActivo?: string;
   [key: string]: any;
@@ -53,6 +64,8 @@ const validarFechas = (inicio: string, fin: string): boolean => {
 };
 
 
+
+
 export default function ReportesCanal({ auth }: PageProps) {
   const { props } = usePage<PageProps>();
   const [zonaSeleccionada, setZonaSeleccionada] = useState<string | null>(null);
@@ -67,8 +80,8 @@ export default function ReportesCanal({ auth }: PageProps) {
   const [aniosDisponibles, setAniosDisponibles] = useState<string[]>([]);
 
   const [porcentajeIncidencias, setPorcentajeIncidencias] = useState(null);
-const [loadingGrafico, setLoadingGrafico] = useState(false);
-const [modalAbierto, setModalAbierto] = useState<string | null>(null);
+  const [loadingGrafico, setLoadingGrafico] = useState(false);
+  const [modalAbierto, setModalAbierto] = useState<string | null>(null);
 
 
 const cerrarModal = () => setModalAbierto(null);
@@ -151,7 +164,6 @@ const cargarDatos = (zona: string, inicio: string, fin: string) => {
     queryParams.append('fecha_fin', fin);
   }
 
-  // ✅ Año para vista general solo si es válido y no es "Todos"
   const anioValido = anioSeleccionado && anioSeleccionado !== '' && anioSeleccionado !== 'Todos';
 
   if (isGeneral && anioValido) {
@@ -230,6 +242,122 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
 
   const esZonaGeneral = zonaSeleccionada?.toLowerCase().includes('general');
   console.log('📊 porcentajeIncidencias:', datosReporte?.porcentajeIncidencias);
+  const resumen = document.getElementById('GraficoPorcentajeIncidencias') as HTMLCanvasElement;
+
+
+
+  const exportarInformePDF = async () => {
+    const zonas = Object.keys(datosReporte.zonas || {});
+    const imagenes = [];
+    const tablas: Record<string, any> = {};
+  
+    // 📊 Gráfico general
+    const resumen = document.getElementById('GraficoPorcentajeIncidencias') as HTMLCanvasElement | null;
+    if (resumen) {
+      imagenes.push({
+        titulo: 'Resumen General',
+        base64: resumen.toDataURL('image/png'),
+      });
+    }
+  
+    // 📋 Tablas generales (resumen)
+    const resumenCanales = document.querySelectorAll('#TablaResumenCanales tbody tr');
+    const resumenIncidencias = document.querySelectorAll('#TablaResumenIncidencias tbody tr');
+  
+    tablas['General'] = {};
+  
+    if (resumenCanales.length > 0) {
+      tablas['General'].resumenCanales = Array.from(resumenCanales).map(row => {
+        const cells = row.querySelectorAll('td');
+        return {
+          canal: cells[0]?.innerText || '',
+          cantidad: parseInt(cells[1]?.innerText || '0'),
+          porcentaje: cells[2]?.innerText?.replace('%', '') || '0',
+        };
+      });
+    }
+  
+    if (resumenIncidencias.length > 0) {
+      tablas['General'].resumenIncidencias = Array.from(resumenIncidencias).map(row => {
+        const cells = row.querySelectorAll('td');
+        return {
+          incidencia: cells[0]?.innerText || '',
+          cantidad: parseInt(cells[1]?.innerText || '0'),
+          porcentaje: cells[2]?.innerText?.replace('%', '') || '0',
+        };
+      });
+    }
+  
+    // 📊 Gráficos y tablas por zona
+    zonas.forEach((zona) => {
+      const slug = convertirASlug(zona);
+      tablas[zona] = {};
+  
+      ['SeguimientoDiario', 'JornadaAMPM', 'TopCanales'].forEach((grafico) => {
+        const wrapper = document.getElementById(`${grafico}-${slug}`);
+        const canvas = wrapper?.querySelector('canvas') as HTMLCanvasElement | null;
+  
+        if (canvas) {
+          imagenes.push({
+            titulo: `${grafico} - ${zona}`,
+            base64: canvas.toDataURL('image/png'),
+          });
+        }
+      });
+  
+      // Tabla: Incidencias
+      const tablaIncidencias = document.querySelectorAll(`#TablaIncidencias-${slug} tbody tr`);
+      if (tablaIncidencias.length > 0) {
+        tablas[zona].resumenIncidencias = Array.from(tablaIncidencias).map(row => {
+          const cells = row.querySelectorAll('td');
+          return {
+            incidencia: cells[0]?.innerText || '',
+            cantidad: parseInt(cells[1]?.innerText || '0'),
+            porcentaje: cells[2]?.innerText?.replace('%', '') || '0',
+          };
+        });
+      }
+  
+      // Tabla: Último día
+      const tablaUltimoDia = document.querySelectorAll(`#TablaUltimoDia-${slug} tbody tr`);
+      if (tablaUltimoDia.length > 0) {
+        tablas[zona].ultimoDia = Array.from(tablaUltimoDia).map(row => {
+          const cells = row.querySelectorAll('td');
+          return {
+            canal: cells[0]?.innerText || '',
+            fecha: cells[1]?.innerText || '',
+            incidencia: cells[2]?.innerText || '',
+          };
+        });
+      }
+    });
+  
+    if (imagenes.length === 0 && Object.keys(tablas).length === 0) {
+      alert('⚠️ No se capturaron datos para exportar.');
+      return;
+    }
+  
+    try {
+      const response = await axios.post('/reportesCanal/pdf/exportar', {
+        imagenes,
+        tablas,
+      }, {
+        responseType: 'blob',
+      });
+  
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = 'reporte_general.pdf';
+      link.click();
+    } catch (error) {
+      console.error('❌ Error exportando PDF:', error);
+      alert('Ocurrió un error al exportar el PDF.');
+    }
+  };
+  
+  
+  
 
   return (
     <AuthenticatedLayout auth={auth} header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Reportes Canal</h2>}>
@@ -274,24 +402,34 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
           )}
 
           {zonaSeleccionada && esZonaGeneral && (
-            <div className="flex justify-end mb-4">
-  <div className="flex items-center gap-2">
-    <label className="font-semibold text-gray-700">Año:</label>
-    <select
-      value={anioSeleccionado}
-      onChange={(e) => {
-        const valor = e.target.value;
-        setAnioSeleccionado(valor); // solo setea, no llama cargarDatos aquí
-      }}
-      className="w-24 border px-3 py-1 rounded" // ✅ ancho mínimo aplicado
-    >
-      <option value="">Todos</option>
-      {aniosDisponibles.map((anio) => (
-        <option key={anio} value={anio}>{anio}</option>
-      ))}
-    </select>
-  </div>
-</div>
+            <div className="flex justify-end mb-4 gap-4">
+              
+            <div className="flex items-center gap-2">
+              <label className="font-semibold text-gray-700">Año:</label>
+              <select
+                value={anioSeleccionado}
+                onChange={(e) => {
+                  const valor = e.target.value;
+                  setAnioSeleccionado(valor); // solo setea
+                }}
+                className="w-24 border px-3 py-1 rounded"
+              >
+                <option value="">Todos</option>
+                {aniosDisponibles.map((anio) => (
+                  <option key={anio} value={anio}>{anio}</option>
+                ))}
+              </select>
+            </div>
+          
+            <button
+              onClick={exportarInformePDF}
+              className="px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition"
+            >
+              📄 Exportar PDF
+            </button>
+          </div>
+          
+          
 
           )}
 
@@ -332,6 +470,90 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
             </div>
           )}
 
+{esVistaGeneral() && datosReporte?.zonas && (
+  <>
+    {/* 🔷 Resumen General */}
+    <div className="mb-10 border-b pb-10">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">Resumen General</h2>
+
+      <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div id="TablaResumenCanales">
+          <TablaResumenCanales datos={datosReporte.resumenCanales} />
+        </div>
+        <div id="TablaResumenIncidencias">
+          <TablaResumenIncidencias datos={datosReporte.resumenIncidencias} />
+        </div>
+      </div>
+
+      {datosReporte.porcentajeIncidencias && (
+        <div className="mt-10">
+          <GraficoPorcentajeIncidencias
+            show={true}
+            onClose={() => {}}
+            datos={datosReporte.porcentajeIncidencias}
+          />
+        </div>
+        
+      )}
+    </div>
+
+    {/* 🔒 Render oculto para exportar todos los gráficos/tablas por zona */}
+      {Object.entries(datosReporte.zonas).map(([nombreZona, zonaData]: [string, any]) => {
+        const slug = convertirASlug(nombreZona);
+        return (
+          <div key={slug}>
+            {zonaData.seguimiento && (
+              <SeguimientoDiario
+                show={false}
+                onClose={() => {}}
+                datos={zonaData.seguimiento}
+                zonaId={slug}
+                id={`SeguimientoDiario-${slug}`}
+              />
+            )}
+            {zonaData.jornada && (
+              <JornadaAMPM
+                show={false}
+                onClose={() => {}}
+                datos={zonaData.jornada}
+                zonaId={slug}
+                id={`JornadaAMPM-${slug}`}
+              />
+            )}
+            {zonaData.topCanales && (
+              <TopCanales
+                show={false}
+                onClose={() => {}}
+                datos={zonaData.topCanales}
+                zonaId={slug}
+                id={`TopCanales-${slug}`}
+              />
+            )}
+            {zonaData.incidencias && (
+              <TablaIncidencias
+                show={false}
+                onClose={() => {}}
+                datos={zonaData.incidencias}
+                zonaId={slug}
+                id={`TablaIncidencias-${slug}`}
+              />
+            )}
+            {zonaData.ultimoDia && (
+              <TablaUltimoDia
+                show={false}
+                onClose={() => {}}
+                datos={zonaData.ultimoDia}
+                zonaId={slug}
+                id={`TablaUltimoDia-${slug}`}
+              />
+            )}
+          </div>
+        );
+      })}
+  </>
+)}
+
+
           {!loading && zonaSeleccionada && datosReporte && !esVistaGeneral() && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               <div className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer" onClick={() => abrirModal('seguimiento')}>
@@ -352,48 +574,10 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
             </div>
           )}
 
-{zonaSeleccionada && datosReporte?.resumenCanales && datosReporte?.resumenIncidencias && (
-  <>
-    <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
-      <div className="cursor-pointer" onClick={() => setModalAbierto('TablaResumenCanalesModal')}>
-        <TablaResumenCanales datos={datosReporte.resumenCanales} />
-      </div>
-      <div className="cursor-pointer" onClick={() => setModalAbierto('TablaResumenIncidenciasModal')}>
-        <TablaResumenIncidencias datos={datosReporte.resumenIncidencias} />
-      </div>
-    </div>
 
-    {datosReporte.porcentajeIncidencias && (
-      <>
-        <div className="mt-10 cursor-pointer" onClick={() => setModalAbierto('porcentajeIncidencias')}>
-          <GraficoPorcentajeIncidencias
-            show={true}
-            onClose={() => {}}
-            datos={datosReporte.porcentajeIncidencias}
-          />
-        </div>
 
-        <GraficoPorcentajeIncidenciasModal
-          show={modalAbierto === 'porcentajeIncidencias'}
-          onClose={() => cerrarModal()}
-          datos={datosReporte.porcentajeIncidencias}
-        />
-      </>
-    )}
 
-    <TablaResumenCanalesModal
-      show={modalAbierto === 'TablaResumenCanalesModal'}
-      onClose={() => cerrarModal()}
-      datos={datosReporte.resumenCanales}
-    />
 
-    <TablaResumenIncidenciasModal
-      show={modalAbierto === 'TablaResumenIncidenciasModal'}
-      onClose={() => cerrarModal()}
-      datos={datosReporte.resumenIncidencias}
-    />
-  </>
-)}
 
 
           {modalType === 'seguimiento' && (

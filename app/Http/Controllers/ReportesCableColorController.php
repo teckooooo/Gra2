@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Carbon\Carbon;
 
+use Barryvdh\Snappy\Facades\SnappyPdf as PDF;
+
 class ReportesCableColorController extends Controller
 {
     private $coloresIncidencias = [];
@@ -43,6 +45,7 @@ class ReportesCableColorController extends Controller
 
         $tabla = $zonasMap[$zona];
 
+        // 📅 Obtener fechas reales según rango o últimos 15 días
         if ($fechaInicio && $fechaFin) {
             $fechasReales = DB::table($tabla)
                 ->selectRaw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_real")
@@ -71,6 +74,7 @@ class ReportesCableColorController extends Controller
                 ->toArray();
         }
 
+        // 🔍 Obtener datos de esas fechas
         $query = DB::table($tabla)
             ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
             ->whereIn(DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y')"), $fechasReales)
@@ -82,14 +86,19 @@ class ReportesCableColorController extends Controller
             return $fila;
         });
 
+        // 🧠 Construir datos de zona
         $datosReporte = [
             'seguimiento' => $this->generarSeguimientoDiario($datos),
             'topCanales' => $this->generarTopCanales($datos),
             'jornada' => $this->generarJornadaAMPM($datos),
             'incidencias' => $this->generarTablaIncidencias($datos),
             'ultimoDia' => $this->generarTablaUltimoDia($datos, $fechasReales),
+            'resumenCanales' => $this->generarResumenTopCanales($datos),
+            'resumenIncidencias' => $this->generarResumenIncidencias($datos),
+            'porcentajeIncidencias' => $this->generarGraficoPorcentajeIncidencias($datos),
         ];
 
+        // 🔄 Si es una vista individual, renderizar con Inertia
         if ($esVistaInertia) {
             return Inertia::render('reportesCanal', compact('datosReporte'));
         }
@@ -97,38 +106,41 @@ class ReportesCableColorController extends Controller
         return $datosReporte;
     }
 
+
     public function obtenerReporteGeneral(Request $request, $tipo)
     {
-        $anio = $request->query('anio'); // puede venir vacío ("")
+        $anio = $request->query('anio');
         logger("📥 Año recibido en Laravel: " . ($anio ?: 'Todos'));
-    
+
         $zonasCableColor = [
-            'sheet_combarbala',
-            'sheet_monte_patria',
-            'sheet_ovalle',
-            'sheet_salamanca',
-            'sheet_illapel',
-            'sheet_vicuna',
+            'combarbala' => 'sheet_combarbala',
+            'monte_patria' => 'sheet_monte_patria',
+            'ovalle' => 'sheet_ovalle',
+            'salamanca' => 'sheet_salamanca',
+            'illapel' => 'sheet_illapel',
+            'vicuna' => 'sheet_vicuna',
         ];
-    
+
         $zonasTvRed = [
-            'sheet_puerto_natales',
-            'sheet_punta_arenas',
+            'puerto_natales' => 'sheet_puerto_natales',
+            'punta_arenas' => 'sheet_punta_arenas',
         ];
-    
-        $tablas = $tipo === 'tvred' ? $zonasTvRed : $zonasCableColor;
-        $datos = collect();
-    
-        foreach ($tablas as $tabla) {
+
+        $zonas = $tipo === 'tvred' ? $zonasTvRed : $zonasCableColor;
+
+        $datos = collect(); // datos generales por año
+        $datosPorZona = []; // datos por zona con últimos 15 días
+
+        foreach ($zonas as $clave => $tabla) {
+            // 🔹 Acumula datos para reportes generales (por año si se indicó)
             $query = DB::table($tabla)
                 ->select('*', DB::raw("STR_TO_DATE(fecha, '%d/%m/%Y') as fecha_ordenada"))
                 ->whereNotNull('fecha');
-    
-            // ✅ Solo filtrar por año si fue enviado (no vacío)
+
             if (!empty($anio)) {
                 $query->whereRaw("YEAR(STR_TO_DATE(fecha, '%d/%m/%Y')) = ?", [$anio]);
             }
-    
+
             $registros = $query->get()
                 ->filter(fn($fila) => $fila->fecha_ordenada !== null)
                 ->map(function ($fila) {
@@ -137,28 +149,23 @@ class ReportesCableColorController extends Controller
                     $fila->anio_detectado = $anioDetectado;
                     return $fila;
                 });
-    
+
             $datos = $datos->merge($registros);
+
+            // 🔸 Carga últimos 15 días de esta zona individual
+            $datosPorZona[$clave] = $this->generarDatosParaZona($clave, false);
         }
-    
+
         return Inertia::render('reportesCanal', [
             'datosReporte' => [
-                'seguimiento' => $this->generarSeguimientoDiario($datos),
-                'topCanales' => $this->generarTopCanales($datos),
-                'jornada' => $this->generarJornadaAMPM($datos),
-                'incidencias' => $this->generarTablaIncidencias($datos),
-                'ultimoDia' => $this->generarTablaUltimoDia($datos, []),
                 'resumenCanales' => $this->generarResumenTopCanales($datos),
                 'resumenIncidencias' => $this->generarResumenIncidencias($datos),
-                'porcentajeIncidencias' => $this->generarGraficoPorcentajeIncidencias($datos), // ✅ AGREGA ESTO
+                'porcentajeIncidencias' => $this->generarGraficoPorcentajeIncidencias($datos),
+                'zonas' => $datosPorZona,
             ],
             'anioActivo' => $anio,
         ]);
-        
-        
     }
-    
-    
 
     public function obtenerAniosDisponibles($tipo)
     {
@@ -470,61 +477,220 @@ class ReportesCableColorController extends Controller
     }
 
     private function generarGraficoPorcentajeIncidencias($datos)
-{
-    $conteoPorMes = [];
+    {
+        $conteoPorMes = [];
 
-    foreach ($datos as $fila) {
-        if (empty($fila->fecha) || empty($fila->incidencia)) continue;
+        foreach ($datos as $fila) {
+            if (empty($fila->fecha) || empty($fila->incidencia)) continue;
 
-        try {
-            $fecha = Carbon::createFromFormat('d/m/Y', $fila->fecha);
-        } catch (\Exception $e) {
-            continue; // Salta si la fecha está malformada
+            try {
+                $fecha = Carbon::createFromFormat('d/m/Y', $fila->fecha);
+            } catch (\Exception $e) {
+                continue; // Salta si la fecha está malformada
+            }
+
+            $mes = $fecha->translatedFormat('M Y'); // Ej: "Ene 2025"
+            $incidencia = trim($fila->incidencia);
+
+            $conteoPorMes[$mes][$incidencia] = ($conteoPorMes[$mes][$incidencia] ?? 0) + 1;
         }
 
-        $mes = $fecha->translatedFormat('M Y'); // Ej: "Ene 2025"
-        $incidencia = trim($fila->incidencia);
+        $labels = array_keys($conteoPorMes);
+        $totalesPorMes = [];
 
-        $conteoPorMes[$mes][$incidencia] = ($conteoPorMes[$mes][$incidencia] ?? 0) + 1;
-    }
-
-    $labels = array_keys($conteoPorMes);
-    $totalesPorMes = [];
-
-    foreach ($conteoPorMes as $mes => $incidencias) {
-        $totalesPorMes[$mes] = array_sum($incidencias);
-    }
-
-    // Obtener todas las incidencias únicas
-    $todasIncidencias = [];
-    foreach ($conteoPorMes as $mes => $incidencias) {
-        foreach (array_keys($incidencias) as $incidencia) {
-            $todasIncidencias[$incidencia] = true;
+        foreach ($conteoPorMes as $mes => $incidencias) {
+            $totalesPorMes[$mes] = array_sum($incidencias);
         }
-    }
-    $todasIncidencias = array_keys($todasIncidencias);
 
-    $datasets = [];
-    foreach ($todasIncidencias as $incidencia) {
-        $datasets[] = [
-            'label' => $incidencia,
-            'data' => array_map(function ($mes) use ($conteoPorMes, $incidencia, $totalesPorMes) {
-                $cantidad = $conteoPorMes[$mes][$incidencia] ?? 0;
-                $total = $totalesPorMes[$mes] ?: 1;
-                return round(($cantidad / $total) * 100, 2);
-            }, $labels),
-            'backgroundColor' => $this->colorIncidencia($incidencia),
+        // Obtener todas las incidencias únicas
+        $todasIncidencias = [];
+        foreach ($conteoPorMes as $mes => $incidencias) {
+            foreach (array_keys($incidencias) as $incidencia) {
+                $todasIncidencias[$incidencia] = true;
+            }
+        }
+        $todasIncidencias = array_keys($todasIncidencias);
+
+        $datasets = [];
+        foreach ($todasIncidencias as $incidencia) {
+            $datasets[] = [
+                'label' => $incidencia,
+                'data' => array_map(function ($mes) use ($conteoPorMes, $incidencia, $totalesPorMes) {
+                    $cantidad = $conteoPorMes[$mes][$incidencia] ?? 0;
+                    $total = $totalesPorMes[$mes] ?: 1;
+                    return round(($cantidad / $total) * 100, 2);
+                }, $labels),
+                'backgroundColor' => $this->colorIncidencia($incidencia),
+            ];
+        }
+
+        return [
+            'data' => [
+                'labels' => $labels,
+                'datasets' => $datasets,
+            ],
+            'options' => ['responsive' => true],
         ];
     }
 
-    return [
-        'data' => [
-            'labels' => $labels,
-            'datasets' => $datasets,
-        ],
-        'options' => ['responsive' => true],
-    ];
+    public function generarPDF(Request $request, $tipo)
+{
+    // 🔧 Opción 1: Aumentar límites
+    ini_set('memory_limit', '512M');
+    set_time_limit(120);
+
+    $imagenes = json_decode($request->input('imagenes'), true) ?? [];
+    $tablas = json_decode($request->input('tablas'), true) ?? [];
+    $zonasGraficos = json_decode($request->input('zonasGraficos'), true) ?? [];
+
+    $anio = $request->query('anio') ?? 'Todos';
+    $zonaNombre = $tipo === 'cablecolor' ? 'Cable Color' : 'TV Red';
+
+    // 📝 Debug opcional
+    logger('📄 Generando PDF básico', compact('anio', 'zonaNombre'));
+
+    $pdf = Pdf::loadView('reportes.pdf-graficos', [
+        'imagenes' => $imagenes,
+        'anio' => $anio,
+        'zona' => ucfirst($zonaNombre),
+        'fechaGeneracion' => now()->format('d/m/Y H:i'),
+        'TablaResumenCanales' => $tablas['TablaResumenCanales'] ?? '',
+        'TablaResumenIncidencias' => $tablas['TablaResumenIncidencias'] ?? '',
+        'zonasGraficos' => $zonasGraficos,
+    ])->setPaper('a4', 'portrait');
+
+    return $pdf->stream("informe-{$zonaNombre}-{$anio}.pdf");
 }
+
+
+public function generarPDFconGraficos(Request $request, $tipo)
+{
+    ini_set('memory_limit', '512M');
+    set_time_limit(120);
+
+    $anio = $request->query('anio');
+
+    // 👇 Forzar parseo a JSON
+    $imagenes = is_string($request->input('imagenes')) ? json_decode($request->input('imagenes'), true) : $request->input('imagenes', []);
+    $tablas = is_string($request->input('tablas')) ? json_decode($request->input('tablas'), true) : $request->input('tablas', []);
+    $zonasGraficos = is_string($request->input('zonasGraficos')) ? json_decode($request->input('zonasGraficos'), true) : $request->input('zonasGraficos', []);
+
+    $TablaResumenCanales = $tablas['TablaResumenCanales'] ?? '';
+    $TablaResumenIncidencias = $tablas['TablaResumenIncidencias'] ?? '';
+    $zonaNombre = $tipo === 'cablecolor' ? 'Cable Color' : 'TV Red';
+
+    logger('🧾 Zonas Graficos recibidos:', array_keys($zonasGraficos));
+
+    $pdf = PDF::loadView('pdf.pdf-graficos', [
+        'zona' => ucfirst($zonaNombre),
+        'anio' => $anio ?? 'Todos',
+        'fechaGeneracion' => now()->format('d/m/Y H:i'),
+        'imagenes' => $imagenes,
+        'resumenCanales' => $TablaResumenCanales,
+        'resumenIncidencias' => $TablaResumenIncidencias,
+        'zonasGraficos' => $zonasGraficos,
+    ])->setPaper('a4');
+
+    return $pdf->inline("informe-{$zonaNombre}-{$anio}.pdf");
+}
+
+public function exportarPDF(Request $request)
+{
+    try {
+        logger()->debug('📤 Iniciando exportación de PDF...');
+
+        $imagenes = $request->input('imagenes') ?? [];
+        $tablas = $request->input('tablas') ?? [];
+
+        // ✅ Log para verificar que llegan las tablas
+        logger()->debug('📊 Tablas recibidas');
+
+        // ✅ Log para verificar que llegan las imágenes
+        logger()->debug('🖼️ Imágenes recibidas: ' . count($imagenes));
+        foreach ($imagenes as $i => $img) {
+            $titulo = $img['titulo'] ?? '(sin título)';
+            $base64 = isset($img['base64']) && str_starts_with($img['base64'], 'data:image/')
+                ? '✅ OK'
+                : '❌ Base64 inválido o no comienza con data:image/';
+            logger()->debug("📸 Imagen #$i: $titulo — $base64");
+        }
+
+        if (!is_array($imagenes) || empty($imagenes)) {
+            logger()->debug('⚠️ No se recibieron imágenes válidas');
+            return response()->json(['error' => 'No se recibieron imágenes válidas.'], 400);
+        }
+
+        foreach ($imagenes as $img) {
+            if (empty($img['base64']) || !str_starts_with($img['base64'], 'data:image/')) {
+                return response()->json(['error' => 'Una o más imágenes no son válidas.'], 400);
+            }
+        }
+
+        
+        logger()->debug('✅ Preparando PDF para generar...');
+        
+        $pdf = Pdf::loadView('reportes.pdf_zonas', [
+                'imagenes' => $imagenes,
+                'tablas' => $tablas,
+                'fechaGeneracion' => now()->format('d/m/Y H:i'),
+                'zona' => 'General',
+            ])
+            ->setOptions([
+                'enable-local-file-access' => true,
+                'no-stop-slow-scripts' => true,
+                'disable-javascript' => true,
+                'load-error-handling' => 'ignore',
+                'load-media-error-handling' => 'ignore',
+                'disable-external-links' => true,
+                'disable-internal-links' => true,
+            ])
+            ->setPaper('a4', 'landscape');
+
+        logger()->debug('✅ PDF generado correctamente, listo para descargar');
+        return $pdf->download('reporte_general.pdf');
+
+    } catch (\Throwable $e) {
+        logger()->error('❌ Error exportando PDF', [
+            'mensaje' => $e->getMessage(),
+            'linea' => $e->getLine(),
+            'archivo' => $e->getFile(),
+        ]);
+        return response()->json([
+            'error' => $e->getMessage(),
+            'linea' => $e->getLine(),
+            'archivo' => $e->getFile(),
+        ], 500);
+    }
+}
+public function cargarDummy()
+{
+    $imagenes = [
+        [
+            'titulo' => 'GraficoPorcentajeIncidencias - general',
+            'base64' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...' // base64 corto real
+        ]
+    ];
+
+    $tablas = [
+        'general' => [
+            'resumenCanales' => [
+                ['canal' => 'TVE HD', 'cantidad' => 215, 'porcentaje' => 8.62],
+                ['canal' => 'VIA X', 'cantidad' => 120, 'porcentaje' => 4.81],
+            ],
+            'resumenIncidencias' => [
+                ['incidencia' => 'Pixelado', 'cantidad' => 100, 'porcentaje' => 40],
+                ['incidencia' => 'Sin señal', 'cantidad' => 50, 'porcentaje' => 20],
+            ],
+            'ultimoDia' => [
+                ['canal' => 'TVE HD', 'fecha' => '01/05/2025', 'incidencia' => 'Pixelado'],
+            ]
+        ]
+    ];
+
+    session(['imagenes' => $imagenes, 'tablas' => $tablas]);
+    return redirect()->route('vista.pdf.zonas');
+}
+
 
 
 

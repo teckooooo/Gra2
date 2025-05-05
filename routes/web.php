@@ -111,6 +111,34 @@ Route::middleware('auth')->group(function () {
     Route::get('/configuracion', function () {
         return Inertia::render('configuracion');
     })->name('configuracion');
+
+    Route::get('/reportes/general/{tipo}/pdf', [ReportesCableColorController::class, 'generarPDF']);
+    Route::post('/reportes/general/{tipo}/pdf-con-graficos', [ReportesCableColorController::class, 'generarPDFconGraficos']);
+    Route::post('/reportes/general/{tipo}/pdf-con-graficos', [ReportesCableColorController::class, 'generarPDF'])->name('reportes.pdf');
+    Route::post('/reportes/general/{tipo}/pdf-con-graficos', [ReportesCableColorController::class, 'generarPDF'])->middleware('auth');
+    Route::post('/reportesCanal/pdf/exportar', [ReportesCableColorController::class, 'exportarPDF'])->name('reportes.exportarPDF');
+    Route::get('/cargar-dummy', [ReportesCableColorController::class, 'cargarDummy']);
+
+    Route::get('/vista-pdf-zonas', function () {
+        $imagenes = session('imagenes', []);
+        $tablas = session('tablas', []);
+        return view('reportes.pdf_zonas', [
+            'imagenes' => $imagenes,
+            'tablas' => $tablas,
+            'fechaGeneracion' => now()->format('d/m/Y H:i'),
+            'zona' => 'General',
+        ]);
+    });
+    Route::get('/vista-pdf-zonas', function () {
+        return view('reportes.pdf_zonas', [
+            'imagenes' => session('imagenes') ?? [],
+            'tablas' => session('tablas') ?? [],
+            'fechaGeneracion' => now()->format('d/m/Y H:i'),
+            'zona' => 'General',
+        ]);
+    })->name('vista.pdf.zonas');
+    
+
 });
 
 require __DIR__.'/auth.php';

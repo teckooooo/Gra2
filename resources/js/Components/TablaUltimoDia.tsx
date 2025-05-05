@@ -4,15 +4,36 @@ import { Fragment } from 'react';
 interface TablaUltimoDiaProps {
   show: boolean;
   onClose: () => void;
-  datos: any[];
+  datos: any[] | null | undefined;
+  zonaId?: string;
+  id?: string;
 }
 
-export default function TablaUltimoDia({ show, onClose, datos }: TablaUltimoDiaProps) {
-  const contenido = (
+export default function TablaUltimoDia({
+  show,
+  onClose,
+  datos,
+  zonaId = 'general',
+  id,
+}: TablaUltimoDiaProps) {
+  const tableId = id || `TablaUltimoDia-${zonaId}`;
+
+  if (!Array.isArray(datos) || datos.length === 0) {
+    return (
+      <div className="text-sm text-gray-500 italic">
+        No hay datos disponibles para el Último Día.
+      </div>
+    );
+  }
+
+  const tabla = (id?: string) => (
     <div className="overflow-x-auto">
       <h3 className="text-lg font-semibold mb-4">Último Día</h3>
       <div className="max-h-[400px] overflow-y-auto rounded border">
-        <table className="min-w-full text-sm text-left">
+        <table
+          className="min-w-full text-sm text-left"
+          {...(id ? { id } : {})}
+        >
           <thead className="bg-gray-100 sticky top-0 z-10">
             <tr>
               <th className="py-2 px-4">Canal</th>
@@ -35,7 +56,11 @@ export default function TablaUltimoDia({ show, onClose, datos }: TablaUltimoDiaP
   );
 
   if (!show) {
-    return <div className="w-full h-full">{contenido}</div>;
+    return (
+      <div id={tableId} className="w-full h-full">
+        {tabla(tableId)}
+      </div>
+    );
   }
 
   return (
@@ -44,7 +69,7 @@ export default function TablaUltimoDia({ show, onClose, datos }: TablaUltimoDiaP
         <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
           <Dialog.Panel className="w-full max-w-5xl transform rounded-xl bg-white p-6 shadow-xl transition-all">
-            {contenido}
+            {tabla(tableId)}
           </Dialog.Panel>
         </div>
       </Dialog>
