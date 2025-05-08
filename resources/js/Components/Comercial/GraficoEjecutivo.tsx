@@ -82,7 +82,7 @@ export default function GraficoEjecutivo({ datos }: { datos: any[] }) {
     <div className="bg-white p-4 rounded shadow">
       <h4 className="text-lg font-semibold mb-4">Suma de Cantidad por Ejecutiva/o</h4>
       <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-        <div style={{ height: `${labels.length * 48}px`, minWidth: '100%' }}>
+        <div style={{ height: `${labels.length * 48}px`, minWidth: '100%' }} id="GraficoEjecutivoAltas">
           <Bar data={chartData} options={options as any} />
         </div>
       </div>

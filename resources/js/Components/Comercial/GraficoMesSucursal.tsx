@@ -141,9 +141,9 @@ export default function GraficoMesSucursal({ datos }: { datos: any[] }) {
   return (
     <div className="bg-white p-4 rounded shadow">
       <h4 className="text-lg font-semibold mb-4">Suma de Cantidad por Mes y Sucursal</h4>
-      <div style={{ height: '420px' }}>
-        <Bar data={data} options={options} />
-      </div>
+        <div id="GraficoMesSucursalAltas" style={{ height: '420px' }}>
+          <Bar data={data} options={options} />
+        </div>
     </div>
   );
 }

@@ -30,7 +30,9 @@ export default function GraficoTipoOT({ datos }: { datos: any[] }) {
   return (
     <div className="bg-white p-4 rounded shadow">
       <h4 className="font-semibold mb-2">Cantidad por Tipo OT</h4>
-      <Doughnut data={data} />
+        <div id="GraficoTipoOTAltas">
+          <Doughnut data={data} />
+        </div>
     </div>
   );
 }

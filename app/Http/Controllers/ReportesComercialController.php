@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 
 class ReportesComercialController extends Controller
 {
@@ -38,4 +40,21 @@ class ReportesComercialController extends Controller
             'bajas' => $bajas
         ]);
     }
+
+    public function exportarPDF(Request $request)
+    {
+        $imagenes = $request->input('imagenes', []);
+        $tablas = $request->input('tablas', []);
+    
+        $fecha = now()->format('d/m/Y');
+    
+        $pdf = Pdf::loadView('reportes.comercial.pdf', [
+            'imagenes' => $imagenes,
+            'tablas' => $tablas,
+            'fecha' => $fecha,
+        ])->setPaper('a4', 'portrait');
+    
+        return $pdf->download('reporte_comercial.pdf');
+    }
+
 }

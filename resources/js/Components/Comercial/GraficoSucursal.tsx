@@ -84,7 +84,9 @@ export default function GraficoSucursal({ datos }: { datos: any[] }) {
   return (
     <div className="bg-white p-4 rounded shadow">
       <h4 className="font-semibold mb-4">Suma de Cantidad por Sucursal</h4>
-      <Doughnut data={data} options={options as any} />
+      <div id="GraficoSucursalAltas">
+        <Doughnut data={data} options={options as any} />
+      </div>
     </div>
   );
 }
