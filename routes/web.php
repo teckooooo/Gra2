@@ -11,6 +11,7 @@ use App\Http\Controllers\ReportesCableColorController;
 use App\Http\Controllers\GrillaCanalesController;
 use App\Http\Controllers\ComercialController;
 use App\Http\Controllers\ReportesComercialController;
+use App\Http\Controllers\ReporteCorreoController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -114,6 +115,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/configuracion', function () {
         return Inertia::render('configuracion');
     })->name('configuracion');
+    Route::get('/configuracion-reportes', [ReporteCorreoController::class, 'index'])->middleware('auth');
+    Route::post('/configuracion-reportes', [ReporteCorreoController::class, 'store'])->middleware('auth');
+    Route::put('/configuracion-reportes/{id}', [ReporteCorreoController::class, 'update'])->middleware('auth');
+    Route::delete('/configuracion-reportes/{id}', [ReporteCorreoController::class, 'destroy'])->middleware('auth');
+    
+    
+
+
+
+    //Reportes
 
     Route::get('/reportes/general/{tipo}/pdf', [ReportesCableColorController::class, 'generarPDF']);
     Route::post('/reportes/general/{tipo}/pdf-con-graficos', [ReportesCableColorController::class, 'generarPDFconGraficos']);
@@ -122,6 +133,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/reportesCanal/pdf/exportar', [ReportesCableColorController::class, 'exportarPDF'])->name('reportes.exportarPDF');
 
     Route::post('/reportesComercial/pdf/exportar', [ReportesComercialController::class, 'exportarPDF']);
+
+    
 
 
 });

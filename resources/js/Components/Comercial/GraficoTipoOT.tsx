@@ -2,7 +2,7 @@ import React from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import 'chart.js/auto';
 
-export default function GraficoTipoOT({ datos }: { datos: any[] }) {
+export default function GraficoTipoOT({ datos, id }: { datos: any[], id?: string }) {
   const agrupado = datos.reduce((acc, item) => {
     let key = item.tipo_ot || 'Otro';
 
@@ -30,9 +30,9 @@ export default function GraficoTipoOT({ datos }: { datos: any[] }) {
   return (
     <div className="bg-white p-4 rounded shadow">
       <h4 className="font-semibold mb-2">Cantidad por Tipo OT</h4>
-        <div id="GraficoTipoOTAltas">
-          <Doughnut data={data} />
-        </div>
+      <div id={id}>
+        <Doughnut data={data} />
+      </div>
     </div>
   );
 }

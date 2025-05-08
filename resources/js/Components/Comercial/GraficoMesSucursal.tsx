@@ -16,7 +16,7 @@ import { es } from 'date-fns/locale';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartDataLabels);
 
-export default function GraficoMesSucursal({ datos }: { datos: any[] }) {
+export default function GraficoLineaMesSucursal({ datos, id }: { datos: any[], id?: string }) {
   const sucursales = ['Combarbalá', 'Illapel', 'Monte Patria', 'Ovalle', 'Salamanca', 'Vicuña', 'XII Región'];
   const colores: Record<string, string> = {
     'Ovalle': '#3b82f6',
@@ -141,9 +141,9 @@ export default function GraficoMesSucursal({ datos }: { datos: any[] }) {
   return (
     <div className="bg-white p-4 rounded shadow">
       <h4 className="text-lg font-semibold mb-4">Suma de Cantidad por Mes y Sucursal</h4>
-        <div id="GraficoMesSucursalAltas" style={{ height: '420px' }}>
-          <Bar data={data} options={options} />
-        </div>
+      <div id={id} style={{ height: '420px' }}>
+        <Bar data={data} options={options} />
+      </div>
     </div>
   );
 }

@@ -12,7 +12,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
-export default function GraficoLineaMesSucursal({ datos }: { datos: any[] }) {
+export default function GraficoLineaMesSucursal({ datos, id }: { datos: any[], id?: string }) {
   const colores: Record<string, string> = {
     'Ovalle': '#3b82f6',
     'XII Región': '#1e1b4b',
@@ -54,9 +54,9 @@ export default function GraficoLineaMesSucursal({ datos }: { datos: any[] }) {
   return (
     <div className="bg-white p-4 rounded shadow">
       <h4 className="text-lg font-semibold mb-4">Suma de Cantidad por Mes y Sucursal</h4>
-        <div id="GraficoLineaAltas" style={{ height: 300 }}>
-          <Line data={data} options={{ responsive: true }} />
-        </div>
+      <div id={id} style={{ height: 300 }}>
+        <Line data={data} options={{ responsive: true }} />
+      </div>
     </div>
   );
 }

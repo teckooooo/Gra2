@@ -14,7 +14,7 @@
       font-size: 18px;
       font-weight: bold;
       margin-bottom: 10px;
-    }
+    }   
     .subtitulo {
       font-size: 14px;
       font-weight: bold;

@@ -5,7 +5,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 Chart.register(ChartDataLabels);
 
-export default function GraficoSucursal({ datos }: { datos: any[] }) {
+export default function GraficoSucursal({ datos, id }: { datos: any[], id?: string }) {
   const agrupado: Record<string, number> = datos.reduce((acc, item) => {
     const key = item.sucursal || 'Sin dato';
     acc[key] = (acc[key] || 0) + 1;
@@ -84,7 +84,7 @@ export default function GraficoSucursal({ datos }: { datos: any[] }) {
   return (
     <div className="bg-white p-4 rounded shadow">
       <h4 className="font-semibold mb-4">Suma de Cantidad por Sucursal</h4>
-      <div id="GraficoSucursalAltas">
+      <div id={id}>
         <Doughnut data={data} options={options as any} />
       </div>
     </div>

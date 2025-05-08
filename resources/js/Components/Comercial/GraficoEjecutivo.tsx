@@ -2,7 +2,7 @@ import React from 'react';
 import { Bar } from 'react-chartjs-2';
 import Chart from 'chart.js/auto';
 
-export default function GraficoEjecutivo({ datos }: { datos: any[] }) {
+export default function GraficoEjecutivo({ datos, id }: { datos: any[], id?: string }) {
   const agrupado: Record<string, number> = datos.reduce((acc, item) => {
     const key = item.ejecutivo || 'Sin dato';
     acc[key] = (acc[key] || 0) + 1;
@@ -82,10 +82,11 @@ export default function GraficoEjecutivo({ datos }: { datos: any[] }) {
     <div className="bg-white p-4 rounded shadow">
       <h4 className="text-lg font-semibold mb-4">Suma de Cantidad por Ejecutiva/o</h4>
       <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-        <div style={{ height: `${labels.length * 48}px`, minWidth: '100%' }} id="GraficoEjecutivoAltas">
+        <div style={{ height: `${labels.length * 48}px`, minWidth: '100%' }} id={id}>
           <Bar data={chartData} options={options as any} />
         </div>
       </div>
     </div>
   );
 }
+

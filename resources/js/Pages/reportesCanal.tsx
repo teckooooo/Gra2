@@ -260,33 +260,33 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
       });
     }
   
-    // 📋 Tablas generales (resumen)
     const resumenCanales = document.querySelectorAll('#TablaResumenCanales tbody tr');
     const resumenIncidencias = document.querySelectorAll('#TablaResumenIncidencias tbody tr');
-  
-    tablas['General'] = {};
-  
-    if (resumenCanales.length > 0) {
-      tablas['General'].resumenCanales = Array.from(resumenCanales).map(row => {
-        const cells = row.querySelectorAll('td');
-        return {
-          canal: cells[0]?.innerText || '',
-          cantidad: parseInt(cells[1]?.innerText || '0'),
-          porcentaje: cells[2]?.innerText?.replace('%', '') || '0',
-        };
-      });
-    }
-  
-    if (resumenIncidencias.length > 0) {
-      tablas['General'].resumenIncidencias = Array.from(resumenIncidencias).map(row => {
-        const cells = row.querySelectorAll('td');
-        return {
-          incidencia: cells[0]?.innerText || '',
-          cantidad: parseInt(cells[1]?.innerText || '0'),
-          porcentaje: cells[2]?.innerText?.replace('%', '') || '0',
-        };
-      });
-    }
+    
+    tablas['general'] = {
+      resumenCanales: resumenCanales.length > 0
+        ? Array.from(resumenCanales).map(row => {
+            const cells = row.querySelectorAll('td');
+            return {
+              canal: cells[0]?.innerText || '',
+              cantidad: parseInt(cells[1]?.innerText || '0'),
+              porcentaje: cells[2]?.innerText?.replace('%', '') || '0',
+            };
+          })
+        : [],
+      resumenIncidencias: resumenIncidencias.length > 0
+        ? Array.from(resumenIncidencias).map(row => {
+            const cells = row.querySelectorAll('td');
+            return {
+              incidencia: cells[0]?.innerText || '',
+              cantidad: parseInt(cells[1]?.innerText || '0'),
+              porcentaje: cells[2]?.innerText?.replace('%', '') || '0',
+            };
+          })
+        : [],
+    };
+    
+
   
     // 📊 Gráficos y tablas por zona
     zonas.forEach((zona) => {
@@ -410,7 +410,7 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
                 value={anioSeleccionado}
                 onChange={(e) => {
                   const valor = e.target.value;
-                  setAnioSeleccionado(valor); // solo setea
+                  setAnioSeleccionado(valor); 
                 }}
                 className="w-24 border px-3 py-1 rounded"
               >

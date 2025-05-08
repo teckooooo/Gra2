@@ -13,7 +13,7 @@ interface PageProps {
   altas?: any[];
   bajas?: any[];
   [key: string]: any;
-}
+} 
 
 export default function ReportesComercial({ auth }: PageProps) {
   const { tipo, datos = [], altas = [], bajas = [] } = usePage<PageProps>().props;
@@ -41,18 +41,23 @@ export default function ReportesComercial({ auth }: PageProps) {
     ];
   
     idsCanvas.forEach(([titulo, id]) => {
-      const canvas = document.getElementById(id)?.querySelector('canvas') as HTMLCanvasElement | null;
+      const contenedor = document.getElementById(id);
+      const canvas = contenedor?.querySelector('canvas') as HTMLCanvasElement | null;
+  
       if (canvas) {
-        imagenes.push({
-          titulo,
-          base64: canvas.toDataURL('image/png'),
-        });
+        const base64 = canvas.toDataURL('image/png');
+        if (base64 && base64.startsWith('data:image/png')) {
+          imagenes.push({ titulo, base64 });
+        } else {
+          console.warn(`⚠️ Imagen inválida para: ${titulo}`);
+        }
+      } else {
+        console.warn(`⚠️ No se encontró canvas para: ${titulo} (id: ${id})`);
       }
     });
   
-  
     if (imagenes.length === 0 && Object.keys(tablas).length === 0) {
-      alert('⚠️ No se encontraron datos para exportar.');
+      alert('⚠️ No se encontraron gráficos ni tablas para exportar.');
       return;
     }
   
@@ -65,15 +70,21 @@ export default function ReportesComercial({ auth }: PageProps) {
       });
   
       const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+  
       const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
+      link.href = url;
       link.download = 'reporte_comercial.pdf';
       link.click();
+  
+      // Liberar memoria
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('❌ Error al exportar PDF:', error);
       alert('Error al generar el PDF.');
     }
   };
+  
 
 
   return (
