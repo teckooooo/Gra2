@@ -557,7 +557,7 @@ class ReportesCableColorController extends Controller
         'TablaResumenCanales' => $tablas['TablaResumenCanales'] ?? '',
         'TablaResumenIncidencias' => $tablas['TablaResumenIncidencias'] ?? '',
         'zonasGraficos' => $zonasGraficos,
-    ])->setPaper('a4', 'portrait');
+    ]);
 
     return $pdf->stream("informe-{$zonaNombre}-{$anio}.pdf");
 }
@@ -589,7 +589,7 @@ public function generarPDFconGraficos(Request $request, $tipo)
         'resumenCanales' => $TablaResumenCanales,
         'resumenIncidencias' => $TablaResumenIncidencias,
         'zonasGraficos' => $zonasGraficos,
-    ])->setPaper('a4');
+    ]);
 
     return $pdf->inline("informe-{$zonaNombre}-{$anio}.pdf");
 }
@@ -643,8 +643,7 @@ public function exportarPDF(Request $request)
                 'load-media-error-handling' => 'ignore',
                 'disable-external-links' => true,
                 'disable-internal-links' => true,
-            ])
-            ->setPaper('a4', 'landscape');
+            ]);
 
         logger()->debug('✅ PDF generado correctamente, listo para descargar');
         return $pdf->download('reporte_general.pdf');
