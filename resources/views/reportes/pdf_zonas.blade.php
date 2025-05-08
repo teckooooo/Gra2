@@ -10,9 +10,10 @@
 <div class="encabezado">
     <img class="logo" src="{{ public_path('images/logo.png') }}">
     <div style="flex: 1; text-align: center;">
-        <h1>Informe Cable Color</h1>
+        <h1>Informe Cable Color - Canales</h1>
     </div>
 </div>
+<p><strong>Fecha de generación:</strong> {{ $fecha }}</p>
 
 @php
     $agrupadas = [];

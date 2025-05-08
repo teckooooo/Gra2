@@ -20,19 +20,52 @@ export default function ReportesComercial({ auth }: PageProps) {
   const opciones = ['Altas', 'Bajas', 'Resumen Altas y Bajas'];
   const [opcionSeleccionada, setOpcionSeleccionada] = useState<string | null>(tipo ?? null);
 
+  function construirResumenPorMesYSucursal(datos: any[]) {
+    const mesesOrden = [
+      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+    ];
+  
+    const datosLimpios = datos.filter(d => d.mes && d.sucursal);
+    const sucursales = [...new Set(datosLimpios.map(d => d.sucursal))];
+  
+    const agrupado: Record<string, Record<string, number>> = {};
+    datosLimpios.forEach(({ mes, sucursal }) => {
+      const m = mes.toLowerCase();
+      if (!agrupado[m]) agrupado[m] = {};
+      agrupado[m][sucursal] = (agrupado[m][sucursal] || 0) + 1;
+    });
+  
+    const resumen = mesesOrden
+      .filter(m => agrupado[m])
+      .map(mes => {
+        const fila = {
+          mes,
+          valores: {} as Record<string, number>,
+          total: 0,
+        };
+        sucursales.forEach(sucursal => {
+          const valor = agrupado[mes][sucursal] || 0;
+          fila.valores[sucursal] = valor;
+          fila.total += valor;
+        });
+        return fila;
+      });
+  
+    return resumen;
+  }
+  
+
   const exportarPDFComercial = async () => {
     const imagenes: { titulo: string; base64: string }[] = [];
     const tablas: Record<string, any> = {};
   
     const idsCanvas: [string, string][] = [
-      // ALTAS
       ['Gráfico Ejecutivo Altas', 'GraficoEjecutivoAltas'],
       ['Gráfico Sucursal Altas', 'GraficoSucursalAltas'],
       ['Gráfico Tipo OT Altas', 'GraficoTipoOTAltas'],
       ['Gráfico Mes/Sucursal Altas', 'GraficoMesSucursalAltas'],
       ['Gráfico Línea Altas', 'GraficoLineaAltas'],
-  
-      // BAJAS
       ['Gráfico Ejecutivo Bajas', 'GraficoEjecutivoBajas'],
       ['Gráfico Sucursal Bajas', 'GraficoSucursalBajas'],
       ['Gráfico Tipo OT Bajas', 'GraficoTipoOTBajas'],
@@ -46,20 +79,22 @@ export default function ReportesComercial({ auth }: PageProps) {
   
       if (canvas) {
         const base64 = canvas.toDataURL('image/png');
-        if (base64 && base64.startsWith('data:image/png')) {
+        if (base64.startsWith('data:image/png')) {
           imagenes.push({ titulo, base64 });
-        } else {
-          console.warn(`⚠️ Imagen inválida para: ${titulo}`);
         }
-      } else {
-        console.warn(`⚠️ No se encontró canvas para: ${titulo} (id: ${id})`);
       }
     });
   
-    if (imagenes.length === 0 && Object.keys(tablas).length === 0) {
-      alert('⚠️ No se encontraron gráficos ni tablas para exportar.');
-      return;
-    }
+    // ⬇️ Datos para las tablas
+    tablas['TablaAltasRaw'] = altas.map(d => ({
+      mes: d.periodo ? new Date(d.periodo.split('/').reverse().join('-')).toLocaleString('es-CL', { month: 'long' }) : '',
+      sucursal: d.sucursal || '',
+    }));
+  
+    tablas['TablaBajasRaw'] = bajas.map(d => ({
+      mes: d.fecha_de_termino ? new Date(d.fecha_de_termino.split('/').reverse().join('-')).toLocaleString('es-CL', { month: 'long' }) : '',
+      sucursal: d.comuna || '',
+    }));
   
     try {
       const response = await axios.post('/reportesComercial/pdf/exportar', {
@@ -71,19 +106,17 @@ export default function ReportesComercial({ auth }: PageProps) {
   
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
-  
       const link = document.createElement('a');
       link.href = url;
       link.download = 'reporte_comercial.pdf';
       link.click();
-  
-      // Liberar memoria
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('❌ Error al exportar PDF:', error);
       alert('Error al generar el PDF.');
     }
   };
+  
   
 
 
@@ -133,7 +166,7 @@ export default function ReportesComercial({ auth }: PageProps) {
                   📄 Exportar PDF
                 </button>
               </div>
-              <ReporteResumenAltasBajas altas={altas} bajas={bajas} />
+              <ReporteResumenAltasBajas altas={altas} bajas={bajas} modoExportar={true} />
             </>
           )}
         </main>

@@ -2,16 +2,27 @@ import React from 'react';
 import { Bar } from 'react-chartjs-2';
 import Chart from 'chart.js/auto';
 
-export default function GraficoEjecutivo({ datos, id }: { datos: any[], id?: string }) {
+export default function GraficoEjecutivo({
+  datos,
+  id,
+  limitarTop10 = false
+}: {
+  datos: any[];
+  id?: string;
+  limitarTop10?: boolean;
+}) {
   const agrupado: Record<string, number> = datos.reduce((acc, item) => {
     const key = item.ejecutivo || 'Sin dato';
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
 
-  // 🔽 Ordenar por cantidad (de mayor a menor)
-  const ordenado = Object.entries(agrupado)
-    .sort((a, b) => b[1] - a[1]);
+  let ordenado = Object.entries(agrupado).sort((a, b) => b[1] - a[1]);
+
+  // 👇 Solo si estamos en modo exportación
+  if (limitarTop10) {
+    ordenado = ordenado.slice(0, 10);
+  }
 
   const labels = ordenado.map(([key]) => key);
   const values = ordenado.map(([, value]) => value);
@@ -80,7 +91,9 @@ export default function GraficoEjecutivo({ datos, id }: { datos: any[], id?: str
 
   return (
     <div className="bg-white p-4 rounded shadow">
-      <h4 className="text-lg font-semibold mb-4">Suma de Cantidad por Ejecutiva/o</h4>
+      <h4 className="text-lg font-semibold mb-4">
+        {limitarTop10 ? 'Top 10 Ejecutivos/as' : 'Suma de Cantidad por Ejecutiva/o'}
+      </h4>
       <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
         <div style={{ height: `${labels.length * 48}px`, minWidth: '100%' }} id={id}>
           <Bar data={chartData} options={options as any} />
@@ -89,4 +102,3 @@ export default function GraficoEjecutivo({ datos, id }: { datos: any[], id?: str
     </div>
   );
 }
-
