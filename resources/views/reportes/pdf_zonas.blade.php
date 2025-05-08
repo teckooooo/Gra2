@@ -3,17 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <title>Informe General de Zonas</title>
-    <link rel="stylesheet" href="{{ public_path('css/informe-zonas.css') }}">
+    <style>
+        /* 🔧 Forzamos orientación vertical A4 */
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9px;
+            color: #2c3e50;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #ccc;
+            color: #1f2937;
+        }
+
+        .zona {
+            page-break-after: always;
+        }
+
+        .titulo-tabla {
+            font-weight: bold;
+            font-size: 10px;
+            margin: 10px 0 4px;
+        }
+
+        .bloque {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        th, td {
+            border: 1px solid #999;
+            padding: 4px;
+            font-size: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f3f4f6;
+        }
+
+        img {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            max-height: 170mm;
+            object-fit: contain;
+            page-break-inside: avoid;
+        }
+
+        .logo {
+            height: 20px;
+        }
+
+        .encabezado {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
 
 <div class="encabezado">
     <img class="logo" src="{{ public_path('images/logo.png') }}">
     <div style="flex: 1; text-align: center;">
-        <h1>Informe Cable Color - Canales</h1>
+        <h1>Informe Cable Color</h1>
     </div>
 </div>
-<p><strong>Fecha de generación:</strong> {{ $fecha }}</p>
 
 @php
     $agrupadas = [];
@@ -28,21 +108,11 @@
     <div class="zona">
         <h2>Zona: {{ ucfirst($zona) }}</h2>
 
-
-        {{-- GENERAL --}}
-        @if (strtolower($zona) === 'general')
-{{-- 🔲 CONTENEDOR FLEX PARA TABLAS Y GRÁFICO --}}
-<table style="width: 100%; table-layout: fixed;">
-    <tr>
-        {{-- 🧱 COLUMNA IZQUIERDA: Tablas (más angosta) --}}
-        <td style="width: 42%; vertical-align: top; padding-right: 10px;">
-            {{-- 📺 Canales con Incidencias --}}
-            @if (!empty($tablas[$zona]['resumenCanales']))
+        @if (!empty($tablas[$zona]['resumenCanales']))
+            <div class="bloque">
                 <div class="titulo-tabla">📺 Canales con Incidencias</div>
-                <table class="tabla">
-                    <thead>
-                        <tr><th>Canal</th><th>Cantidad</th><th>%</th></tr>
-                    </thead>
+                <table>
+                    <thead><tr><th>Canal</th><th>Cantidad</th><th>%</th></tr></thead>
                     <tbody>
                         @foreach (array_slice($tablas[$zona]['resumenCanales'], 0, 15) as $fila)
                             <tr>
@@ -53,15 +123,14 @@
                         @endforeach
                     </tbody>
                 </table>
-            @endif
+            </div>
+        @endif
 
-            {{-- 📊 Incidencias registradas --}}
-            @if (!empty($tablas[$zona]['resumenIncidencias']))
-                <div class="titulo-tabla" style="margin-top: 15px;">📊 Incidencias registradas</div>
-                <table class="tabla">
-                    <thead>
-                        <tr><th>Incidencia</th><th>Cantidad</th><th>%</th></tr>
-                    </thead>
+        @if (!empty($tablas[$zona]['resumenIncidencias']))
+            <div class="bloque">
+                <div class="titulo-tabla">📊 Incidencias registradas</div>
+                <table>
+                    <thead><tr><th>Incidencia</th><th>Cantidad</th><th>%</th></tr></thead>
                     <tbody>
                         @foreach (array_slice($tablas[$zona]['resumenIncidencias'], 0, 15) as $fila)
                             <tr>
@@ -72,101 +141,46 @@
                         @endforeach
                     </tbody>
                 </table>
-            @endif
-        </td>
-
-        {{-- 📈 COLUMNA DERECHA: Gráfico (más ancho) --}}
-        <td style="width: 58%; vertical-align: top;">
-            @foreach ($imagenesZona as $imagen)
-                @php 
-                    $titulo = $imagen['titulo'] ?? '';
-                    $base64 = str_replace(["\n", "\r", ' '], '', $imagen['base64'] ?? '');
-                @endphp
-                @if (
-                    (stripos($titulo, 'Resumen General') !== false || 
-                     stripos($titulo, 'PorcentajeIncidencias') !== false)
-                    && !empty($base64)
-                )
-                    <div class="titulo-tabla">📈 {{ $titulo }}</div>
-                    <img src="{{ $base64 }}" alt="{{ $titulo }}" style="width: 100%; max-height: 500px; object-fit: contain;">
-                @endif
-            @endforeach
-        </td>
-    </tr>
-</table>
-
-
-
-
-            </div>
-
-        @else
-            {{-- ZONAS SECUNDARIAS --}}
-
-            {{-- PRIMERA HOJA: TABLAS --}}
-            <div class="zona">
-                <h2>Zona: {{ ucfirst($zona) }} - Tablas</h2>
-                <div class="contenedor">
-                    @if (!empty($tablas[$zona]['resumenIncidencias']))
-                        <div class="tabla">
-                            <div class="titulo-tabla">📊 Incidencias registradas</div>
-                            <table>
-                                <thead><tr><th>Incidencia</th><th>Cantidad</th><th>%</th></tr></thead>
-                                <tbody>
-                                    @foreach (array_slice($tablas[$zona]['resumenIncidencias'], 0, 15) as $fila)
-                                        <tr>
-                                            <td>{{ $fila['incidencia'] }}</td>
-                                            <td>{{ $fila['cantidad'] }}</td>
-                                            <td>{{ $fila['porcentaje'] }}%</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-
-                    @if (!empty($tablas[$zona]['ultimoDia']))
-                        <div class="tabla">
-                            <div class="titulo-tabla">🗓️ Último Día</div>
-                            <table>
-                                <thead><tr><th>Canal</th><th>Fecha</th><th>Incidencia</th></tr></thead>
-                                <tbody>
-                                    @foreach (array_slice($tablas[$zona]['ultimoDia'], 0, 10) as $fila)
-                                        <tr>
-                                            <td>{{ $fila['canal'] }}</td>
-                                            <td>{{ $fila['fecha'] }}</td>
-                                            <td>{{ $fila['incidencia'] }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- SEGUNDA HOJA: GRÁFICOS --}}
-            <div class="zona">
-                <h2>Zona: {{ ucfirst($zona) }} - Gráficos</h2>
-                @foreach ($imagenesZona as $imagen)
-                    @php 
-                        $titulo = $imagen['titulo'] ?? '';
-                        $base64 = str_replace(["\n", "\r", ' '], '', $imagen['base64'] ?? '');
-                    @endphp
-                    @if (
-                        (str_contains($titulo, 'SeguimientoDiario') || 
-                        str_contains($titulo, 'JornadaAMPM') || 
-                        str_contains($titulo, 'TopCanales')) 
-                        && !empty($base64)
-                    )
-                        <div class="bloque-grafico">
-                            <div class="titulo-tabla">📈 {{ $titulo }}</div>
-                            <img src="{{ $base64 }}" alt="{{ $titulo }}">
-                        </div>
-                    @endif
-                @endforeach
             </div>
         @endif
+
+        @if (!empty($tablas[$zona]['ultimoDia']))
+            <div class="bloque">
+                <div class="titulo-tabla">🗓️ Último Día</div>
+                <table>
+                    <thead><tr><th>Canal</th><th>Fecha</th><th>Incidencia</th></tr></thead>
+                    <tbody>
+                        @foreach (array_slice($tablas[$zona]['ultimoDia'], 0, 10) as $fila)
+                            <tr>
+                                <td>{{ $fila['canal'] }}</td>
+                                <td>{{ $fila['fecha'] }}</td>
+                                <td>{{ $fila['incidencia'] }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+        {{-- 📈 Gráficos --}}
+        @foreach ($imagenesZona as $imagen)
+            @php 
+                $titulo = $imagen['titulo'] ?? '';
+                $base64 = str_replace(["\n", "\r", ' '], '', $imagen['base64'] ?? '');
+            @endphp
+            @if (
+                str_contains($titulo, 'Resumen General') || 
+                str_contains($titulo, 'PorcentajeIncidencias') ||
+                str_contains($titulo, 'SeguimientoDiario') ||
+                str_contains($titulo, 'JornadaAMPM') ||
+                str_contains($titulo, 'TopCanales')
+            )
+                <div class="bloque">
+                    <div class="titulo-tabla">📈 {{ $titulo }}</div>
+                    <img src="{{ $base64 }}" alt="{{ $titulo }}">
+                </div>
+            @endif
+        @endforeach
     </div>
 @endforeach
 

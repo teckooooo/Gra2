@@ -263,7 +263,7 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
     const resumenCanales = document.querySelectorAll('#TablaResumenCanales tbody tr');
     const resumenIncidencias = document.querySelectorAll('#TablaResumenIncidencias tbody tr');
     
-    tablas['general'] = {
+    tablas['General'] = {
       resumenCanales: resumenCanales.length > 0
         ? Array.from(resumenCanales).map(row => {
             const cells = row.querySelectorAll('td');
@@ -573,12 +573,6 @@ const handleCambioDeAnio = (nuevoAnio: string) => {
               </div>
             </div>
           )}
-
-
-
-
-
-
 
           {modalType === 'seguimiento' && (
             <SeguimientoDiarioModal show={modalOpen} onClose={() => setModalOpen(false)} datos={datosReporte.seguimiento} />

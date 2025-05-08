@@ -662,36 +662,5 @@ public function exportarPDF(Request $request)
         ], 500);
     }
 }
-public function cargarDummy()
-{
-    $imagenes = [
-        [
-            'titulo' => 'GraficoPorcentajeIncidencias - general',
-            'base64' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...' // base64 corto real
-        ]
-    ];
-
-    $tablas = [
-        'general' => [
-            'resumenCanales' => [
-                ['canal' => 'TVE HD', 'cantidad' => 215, 'porcentaje' => 8.62],
-                ['canal' => 'VIA X', 'cantidad' => 120, 'porcentaje' => 4.81],
-            ],
-            'resumenIncidencias' => [
-                ['incidencia' => 'Pixelado', 'cantidad' => 100, 'porcentaje' => 40],
-                ['incidencia' => 'Sin señal', 'cantidad' => 50, 'porcentaje' => 20],
-            ],
-            'ultimoDia' => [
-                ['canal' => 'TVE HD', 'fecha' => '01/05/2025', 'incidencia' => 'Pixelado'],
-            ]
-        ]
-    ];
-
-    session(['imagenes' => $imagenes, 'tablas' => $tablas]);
-    return redirect()->route('vista.pdf.zonas');
-}
-
-
-
 
 }
