@@ -25,6 +25,12 @@ class ComercialController extends Controller
             : $query->orderByRaw("STR_TO_DATE(fecha_de_termino, '%d/%m/%Y') DESC");
     
         $registros = $query->paginate($perPage)->withQueryString();
+        $ejecutivos = DB::table('sheet_altas')->select('ejecutivo')->distinct()->pluck('ejecutivo');
+        $tiposOT = DB::table('sheet_altas')->select('tipo_ot')->distinct()->pluck('tipo_ot');
+        $sucursales = DB::table('sheet_altas')->select('sucursal')->distinct()->pluck('sucursal');
+        $planes = DB::table('planes')->select('nombre')->distinct()->pluck('nombre');
+
+
     
         // 🔁 Clonar para obtener todos los datos para gráficos
         $todosLosDatos = DB::table($tabla)->get();
@@ -49,7 +55,12 @@ class ComercialController extends Controller
         return Inertia::render('Comercial', [
             'tipo' => $tipo,
             'registros' => $registros,
-            'datos' => $todosLosDatos, // ✅ para los gráficos
+            'datos' => $todosLosDatos,
+            'ejecutivos' => $ejecutivos,
+            'tiposOT' => $tiposOT,
+            'sucursales' => $sucursales,
+            'planes' => $planes,
+
         ]);
     }
     
@@ -105,6 +116,19 @@ class ComercialController extends Controller
         DB::table($tabla)->where('id', $id)->update($data);
 
         return back()->with('success', 'Registro actualizado correctamente.');
+    }
+
+    public function destroy($tipo, $id)
+    {
+        if (!in_array($tipo, ['altas', 'bajas'])) {
+            abort(404);
+        }
+
+        $tabla = $tipo === 'altas' ? 'sheet_altas' : 'sheet_bajas_2024';
+
+        DB::table($tabla)->where('id', $id)->delete();
+
+        return back()->with('success', 'Registro eliminado correctamente.');
     }
 
 }

@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AgregarRegistroComercialAltaModal from '@/Components/AgregarRegistroComercialAltaModal';
 
@@ -27,9 +27,13 @@ interface PageProps {
     auth: any;
     tipo?: 'altas' | 'bajas';
     registros?: Paginacion<Registro>;
+    ejecutivos?: string[];
+    tiposOT?: string[];
+    sucursales?: string[];
+    planes?: string[];
 }
 
-export default function Comercial({ auth, tipo, registros }: PageProps) {
+export default function Comercial({ auth, tipo, registros, ejecutivos = [], tiposOT = [], sucursales = [], planes = [] }: PageProps) {
     const [opcionActiva, setOpcionActiva] = useState<'altas' | 'bajas' | null>(tipo ?? null);
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editData, setEditData] = useState<Partial<Registro>>({});
@@ -66,9 +70,29 @@ export default function Comercial({ auth, tipo, registros }: PageProps) {
         }
     };
 
+    const handleDelete = (id: number) => {
+        if (opcionActiva && confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+            router.delete(route('comercial.delete', [opcionActiva, id]), {
+                preserveScroll: true,
+                onSuccess: () => router.reload(),
+            });
+        }
+    };
+
     const cambiarCantidad = (cantidad: number) => {
         setPerPage(cantidad);
         router.visit(route('comercial.vista', { tipo: opcionActiva, perPage: cantidad }));
+    };
+
+    const obtenerOpciones = (col: string): string[] => {
+        switch (col) {
+            case 'ejecutivo': return ejecutivos;
+            case 'tipo_ot': return tiposOT;
+            case 'sucursal':
+            case 'comuna': return sucursales;
+            case 'plan': return planes;
+            default: return [];
+        }
     };
 
     return (
@@ -113,18 +137,16 @@ export default function Comercial({ auth, tipo, registros }: PageProps) {
                             </div>
 
                             <div className="mb-4 flex items-center gap-2">
-                                <div className="mb-4 flex items-center gap-2">
-                                    <label className="font-medium">Registros por página:</label>
-                                    <select
-                                        value={perPage}
-                                        onChange={(e) => cambiarCantidad(Number(e.target.value))}
-                                        className="w-20 border rounded px-2 py-1" // ✅ solución aplicada
-                                    >
-                                        {[50, 70, 100].map(n => (
-                                            <option key={n} value={n}>{n}</option>
-                                        ))}
-                                    </select>
-                                </div> 
+                                <label className="font-medium">Registros por página:</label>
+                                <select
+                                    value={perPage}
+                                    onChange={(e) => cambiarCantidad(Number(e.target.value))}
+                                    className="w-20 border rounded px-2 py-1"
+                                >
+                                    {[50, 70, 100].map(n => (
+                                        <option key={n} value={n}>{n}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <table className="min-w-full border text-sm text-gray-700">
@@ -144,21 +166,37 @@ export default function Comercial({ auth, tipo, registros }: PageProps) {
                                             {columnas.map(col => (
                                                 <td key={col} className="border px-4 py-2">
                                                     {editIndex === idx ? (
-                                                        <input
-                                                            value={editData[col] ?? ''}
-                                                            onChange={(e) => handleChange(col, e.target.value)}
-                                                            className="w-full border rounded px-2 py-1"
-                                                        />
+                                                        obtenerOpciones(col).length > 0 ? (
+                                                            <select
+                                                                value={editData[col] ?? ''}
+                                                                onChange={(e) => handleChange(col, e.target.value)}
+                                                                className="w-full border rounded px-2 py-1"
+                                                            >
+                                                                <option value="">Seleccione {col}</option>
+                                                                {obtenerOpciones(col).map(op => (
+                                                                    <option key={op} value={op}>{op}</option>
+                                                                ))}
+                                                            </select>
+                                                        ) : (
+                                                            <input
+                                                                value={editData[col] ?? ''}
+                                                                onChange={(e) => handleChange(col, e.target.value)}
+                                                                className="w-full border rounded px-2 py-1"
+                                                            />
+                                                        )
                                                     ) : (
                                                         fila[col]
                                                     )}
                                                 </td>
                                             ))}
-                                            <td className="border px-4 py-2">
+                                            <td className="border px-4 py-2 space-x-2">
                                                 {editIndex === idx ? (
                                                     <button onClick={handleSave} className="text-green-600 hover:underline">Guardar</button>
                                                 ) : (
-                                                    <button onClick={() => handleEditClick(idx, fila)} className="text-blue-600 hover:underline">Editar</button>
+                                                    <>
+                                                        <button onClick={() => handleEditClick(idx, fila)} className="text-blue-600 hover:underline">Editar</button>
+                                                        <button onClick={() => handleDelete(fila.id)} className="text-red-600 hover:underline">Eliminar</button>
+                                                    </>
                                                 )}
                                             </td>
                                         </tr>

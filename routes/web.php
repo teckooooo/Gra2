@@ -65,6 +65,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/comercial/{tipo}', [ComercialController::class, 'index'])->name('comercial.vista');
     Route::post('/comercial/{tipo}', [ComercialController::class, 'store'])->name('comercial.store');
     Route::put('/comercial/{tipo}/{id}', [ComercialController::class, 'update'])->name('comercial.update');
+    Route::delete('/comercial/{tipo}/{id}', [ComercialController::class, 'destroy'])->name('comercial.delete');
+
 
     // Canales
     Route::get('/canales', function () {
@@ -80,6 +82,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/grilla/{zona}', [GrillaCanalesController::class, 'show'])->name('grilla.zona');
     Route::put('/grilla/{zona}/{id}', [GrillaCanalesController::class, 'update'])->name('grilla.zona.update');
     Route::post('/grilla/{zona}/store', [GrillaCanalesController::class, 'store'])->name('grilla.zona.store');
+    Route::delete('/grilla/{zona}/{id}', [GrillaCanalesController::class, 'destroy'])->name('grilla.zona.destroy');
 
     // Reportes Canal
     Route::get('/reportesCanal', function () {

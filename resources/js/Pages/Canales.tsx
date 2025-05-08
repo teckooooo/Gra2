@@ -44,11 +44,11 @@ export default function Canales() {
         }
     };
 
-    const handleEdit = (canal: Canal) => {
+    const handleEdit = (canal: Canal, tipo: 'normal' | 'decodificador') => {
         setEditId(canal.id);
         setData({
-            nombre: canal.canal || canal.canales_con_decodificador,
-            tipo: canal.canal ? 'normal' : 'decodificador',
+            nombre: tipo === 'normal' ? canal.canal : canal.canales_con_decodificador,
+            tipo: tipo,
         });
         setShowModal(true);
     };
@@ -151,7 +151,9 @@ export default function Canales() {
                                         <td>{c.index}</td>
                                         <td>{c.canal}</td>
                                         <td className="space-x-2">
-                                            <button onClick={() => handleEdit(c)} className="text-blue-600 hover:underline">Editar</button>
+                                            <button onClick={() => handleEdit(c, 'normal')} className="text-blue-600 hover:underline">
+                                                Editar
+                                            </button>
                                             <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:underline">Eliminar</button>
                                         </td>
                                     </tr>
@@ -174,7 +176,9 @@ export default function Canales() {
                                         <td>{d.index}</td>
                                         <td>{d.canales_con_decodificador}</td>
                                         <td className="space-x-2">
-                                            <button onClick={() => handleEdit(d)} className="text-blue-600 hover:underline">Editar</button>
+                                            <button onClick={() => handleEdit(d, 'decodificador')} className="text-blue-600 hover:underline">
+                                                Editar
+                                            </button>
                                             <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:underline">Eliminar</button>
                                         </td>
                                     </tr>

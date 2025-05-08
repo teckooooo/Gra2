@@ -29,6 +29,8 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
     const [comuna, setComuna] = useState(zona);
     const [formato, setFormato] = useState('DECO');
 
+    const isZonaConFormato = ['punta_arenas', 'puerto_natales'].includes(zona.toLowerCase());
+
     const { data, setData, post, processing, errors, reset } = useForm({
         fecha: '',
         canal: '',
@@ -36,7 +38,7 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
         frecuencia: '',
         jornada: '',
         comuna: '',
-        formato: '',
+        formato: isZonaConFormato ? 'DECO' : '',
     });
 
     useEffect(() => {
@@ -67,28 +69,44 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
     }, [jornada]);
 
     useEffect(() => {
+        const nombreFormateado = zona
+            .replace(/_/g, ' ')
+            .toLowerCase()
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+        setComuna(nombreFormateado);
+    }, [zona]);
+
+    useEffect(() => {
         setData('comuna', comuna);
     }, [comuna]);
 
     useEffect(() => {
-        setData('formato', formato);
-    }, [formato]);
+        if (isZonaConFormato) {
+            setData('formato', formato);
+        }
+    }, [formato, zona]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('grilla.zona.store', zona), {
+        const zonaSlug = zona.toLowerCase().replace(/ /g, '_');
+    
+        // Asegura que formato se incluya si corresponde
+        if (isZonaConFormato && !data.formato) {
+            setData('formato', formato); // fuerza valor antes de enviar
+        }
+    
+        post(route('grilla.zona.store', zonaSlug), {
             preserveScroll: true,
             onSuccess: () => {
                 reset();
                 onClose();
-                router.visit(route('grilla.zona', zona), { preserveScroll: true });
+                router.visit(route('grilla.zona', zonaSlug), { preserveScroll: true });
             },
         });
     };
+    
 
     if (!isOpen) return null;
-
-    const isZonaConFormato = ['punta_arenas', 'puerto_natales'].includes(zona.toLowerCase());
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -147,21 +165,9 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
                         </select>
                         {errors.jornada && <p className="text-red-500 text-sm">{errors.jornada}</p>}
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Comuna</label>
-                        <select
-                            value={comuna}
-                            onChange={(e) => setComuna(e.target.value)}
-                            className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
-                        >
-                            {zonas.map((z) => (
-                                <option key={z} value={z}>
-                                    {z}
-                                </option>
-                            ))}
-                        </select>
-                        {errors.comuna && <p className="text-red-500 text-sm">{errors.comuna}</p>}
-                    </div>
+
+                    <input type="hidden" name="comuna" value={comuna} />
+
                     {isZonaConFormato && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Formato</label>
@@ -176,6 +182,7 @@ const AgregarRegistroModal: React.FC<AddRecordModalProps> = ({
                             {errors.formato && <p className="text-red-500 text-sm">{errors.formato}</p>}
                         </div>
                     )}
+
                     <div className="flex justify-end gap-2 pt-4">
                         <button
                             type="button"

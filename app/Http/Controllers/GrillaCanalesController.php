@@ -114,8 +114,8 @@ class GrillaCanalesController extends Controller
             'sheet_combarbala',
             'sheet_monte_patria',
             'sheet_ovalle',
-            'sheet_ptn',
-            'sheet_puq',
+            'sheet_puerto_natales',
+            'sheet_punta_arenas',
             'sheet_salamanca',
             'sheet_vicuna',
             'sheet_illapel',
@@ -125,30 +125,69 @@ class GrillaCanalesController extends Controller
             abort(404, 'Zona no válida.');
         }
 
-        // Validaciones
-        $request->validate([
+        // Validaciones base
+        $rules = [
             'fecha' => 'required|date',
             'canal' => 'required|string',
             'incidencia' => 'required|string',
             'frecuencia' => 'nullable|string',
             'jornada' => 'required|in:AM,PM',
             'comuna' => 'required|string',
-        ]);
+        ];
 
-        // Formatear fecha a dd/mm/yyyy y comuna con mayúscula inicial
-        $fechaFormateada = date('d/m/Y', strtotime($request->fecha));
-        $comunaCapitalizada = ucfirst(strtolower($request->comuna));
+        // Solo validar 'formato' si la zona lo requiere
+        if (in_array($tabla, ['sheet_puerto_natales', 'sheet_punta_arenas'])) {
+            $rules['formato'] = 'required|string|in:DECO,Analoga';
+        }
 
-        // Insertar
-        DB::table($tabla)->insert([
+        $validated = $request->validate($rules);
+
+        // Formatear fecha y comuna
+        $fechaFormateada = date('d/m/Y', strtotime($validated['fecha']));
+        $comunaCapitalizada = ucfirst(strtolower($validated['comuna']));
+
+        // Armar datos a insertar
+        $datos = [
             'fecha' => $fechaFormateada,
-            'canal' => $request->canal,
-            'incidencia' => $request->incidencia,
-            'frecuencia' => $request->frecuencia,
-            'jornada' => $request->jornada,
+            'canal' => $validated['canal'],
+            'incidencia' => $validated['incidencia'],
+            'frecuencia' => $validated['frecuencia'],
+            'jornada' => $validated['jornada'],
             'comuna' => $comunaCapitalizada,
-        ]);
+        ];
+
+        // Agregar formato solo si la tabla lo acepta
+        if (in_array($tabla, ['sheet_puerto_natales', 'sheet_punta_arenas'])) {
+            $datos['formato'] = $validated['formato'];
+        }
+
+        DB::table($tabla)->insert($datos);
 
         return redirect()->route('grilla.zona', strtolower($zona))->with('success', 'Registro creado correctamente.');
     }
+
+    public function destroy($zona, $id)
+    {
+        $tabla = 'sheet_' . strtolower(str_replace(' ', '_', $zona));
+
+        $tablasValidas = [
+            'sheet_combarbala',
+            'sheet_monte_patria',
+            'sheet_ovalle',
+            'sheet_puerto_natales',
+            'sheet_punta_arenas',
+            'sheet_salamanca',
+            'sheet_vicuna',
+            'sheet_illapel',
+        ];
+
+        if (!in_array($tabla, $tablasValidas)) {
+            abort(404, 'Zona no válida.');
+        }
+
+        DB::table($tabla)->where('id', $id)->delete();
+
+        return back()->with('success', 'Registro eliminado correctamente.');
+    }
+
 }

@@ -58,8 +58,11 @@ export default function Dashboard() {
         : [];
 
     const handleEditClick = (idx: number, fila: Canal) => {
+        const comuna = fila.comuna?.trim();
+        const comunaValida = zonas.includes(comuna) ? comuna : zonaMap[zona ?? ''] ?? '';
+    
         setEditIndex(idx);
-        setEditData({ ...fila });
+        setEditData({ ...fila, comuna: comunaValida });
     };
 
     const handleChange = (col: string, value: string) => {
@@ -68,6 +71,10 @@ export default function Dashboard() {
 
     const handleSave = () => {
         if (zona && editData?.id) {
+            if (['punta_arenas', 'puerto_natales'].includes(zona) && !editData.formato) {
+                editData.formato = 'DECO'; // valor por defecto si está vacío
+            }
+    
             router.put(route('grilla.zona.update', [zona, editData.id]), editData, {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -77,6 +84,7 @@ export default function Dashboard() {
             });
         }
     };
+    
 
     return (
         <AuthenticatedLayout auth={auth} header={<h2 className="text-xl font-semibold text-gray-800">Grilla Canales</h2>}>
@@ -111,17 +119,19 @@ export default function Dashboard() {
                 </aside>
 
                 <main className="flex-1 p-6 bg-gray-50">
-                    <div className="mb-4 flex justify-between items-center">
-                        <span className="text-lg font-semibold text-gray-700">
-                            {zona ? `📺 Tabla: ${zonaMap[zona] ?? zona}` : 'Selecciona una zona para ver los canales'}
-                        </span>
+                <div className="mb-4 flex justify-between items-center">
+                    <span className="text-lg font-semibold text-gray-700">
+                        {zona ? `📺 Tabla: ${zonaMap[zona] ?? zona}` : 'Selecciona una zona para ver los canales'}
+                    </span>
+                    {zona && (
                         <button
                             onClick={() => setModalOpen(true)}
                             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                         >
                             + Agregar Registro
                         </button>
-                    </div>
+                    )}
+                </div>
 
                     {zona && Array.isArray(datos?.data) && datos.data.length > 0 ? (
 
@@ -186,7 +196,11 @@ export default function Dashboard() {
                                                                 <option value="PM">PM</option>
                                                             </select>
                                                         ) : col === 'comuna' ? (
-                                                            <select value={editData[col]} onChange={(e) => handleChange(col, e.target.value)} className="w-full border rounded px-2 py-1">
+                                                            <select
+                                                                value={editData[col] ?? zonaMap[zona ?? '']}
+                                                                onChange={(e) => handleChange(col, e.target.value)}
+                                                                className="w-full border rounded px-2 py-1"
+                                                            >
                                                                 {zonas.map(z => (
                                                                     <option key={z} value={z}>{z}</option>
                                                                 ))}
@@ -199,11 +213,25 @@ export default function Dashboard() {
                                                         : fila[col]}
                                                 </td>
                                             ))}
-                                            <td className="border px-4 py-2">
+                                            <td className="border px-4 py-2 flex gap-2">
                                                 {editIndex === idx ? (
                                                     <button onClick={handleSave} className="text-green-600 hover:underline">Guardar</button>
                                                 ) : (
-                                                    <button onClick={() => handleEditClick(idx, fila)} className="text-blue-600 hover:underline">Editar</button>
+                                                    <>
+                                                        <button onClick={() => handleEditClick(idx, fila)} className="text-blue-600 hover:underline">Editar</button>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+                                                                    router.delete(route('grilla.zona.destroy', [zona, fila.id]), {
+                                                                        preserveScroll: true,
+                                                                    });
+                                                                }
+                                                            }}
+                                                            className="text-red-600 hover:underline"
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    </>
                                                 )}
                                             </td>
                                         </tr>
