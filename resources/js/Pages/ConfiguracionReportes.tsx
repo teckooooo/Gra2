@@ -7,21 +7,32 @@ interface Hora {
   hora: string;
 }
 
-interface PageProps {
-  auth: any;
-  horas: Hora[];
-}
-
-export default function ConfiguracionReportes({ auth, horas }: PageProps) {
+export default function ConfiguracionReportes() {
   const [nuevaHora, setNuevaHora] = useState('');
   const [horasEnvio, setHorasEnvio] = useState<Hora[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [horaEditada, setHoraEditada] = useState<string>('');
+
+  const cargarHoras = async () => {
+    try {
+      const res = await fetch('/configuracion/horas');
+      const data = await res.json();
+      const ordenadas = (data as Hora[])
+        .map((h, i) => ({ id: h.id ?? i + 1, hora: h.hora }))
+        .sort((a, b) => a.hora.localeCompare(b.hora));
+      setHorasEnvio(ordenadas);
+    } catch (err) {
+      console.error('❌ Error al cargar las horas:', err);
+      toast.error('No se pudieron cargar las horas');
+    } finally {
+      setCargando(false);
+    }
+  };
 
   useEffect(() => {
-    if (Array.isArray(horas)) {
-      const ordenadas = [...horas].sort((a, b) => a.hora.localeCompare(b.hora));
-      setHorasEnvio(ordenadas);
-    }
-  }, [horas]);
+    cargarHoras();
+  }, []);
 
   const agregarHora = () => {
     if (!nuevaHora) return;
@@ -34,17 +45,36 @@ export default function ConfiguracionReportes({ auth, horas }: PageProps) {
       onSuccess: () => {
         toast.success('✅ Hora agregada');
         setNuevaHora('');
-        router.reload({ only: ['horas'] });
-      }
+        cargarHoras();
+      },
+      onError: (errors) => {
+  if (errors.hora) {
+    toast.error(`⚠️ ${errors.hora}`);
+  } else {
+    toast.error('❌ Error al agregar la hora');
+  }
+}
+,
     });
   };
 
-  const editarHora = (id: number, nueva: string) => {
-    router.put(`/configuracion-reportes/${id}`, { hora: nueva }, {
+  const editarHora = async (id: number, nueva: string) => {
+    const horaFormateada = nueva + ':00';
+    const yaExiste = horasEnvio.some(h => h.hora === horaFormateada && h.id !== id);
+    if (yaExiste) {
+      toast.error('⚠️ Esa hora ya existe');
+      return;
+    }
+
+    router.put(`/configuracion-reportes/${id}`, { hora: horaFormateada }, {
       onSuccess: () => {
         toast.success('✏️ Hora actualizada');
-        router.reload({ only: ['horas'] });
-      }
+        cargarHoras();
+        setEditandoId(null);
+      },
+      onError: () => {
+        toast.error('❌ Error al actualizar la hora');
+      },
     });
   };
 
@@ -54,8 +84,8 @@ export default function ConfiguracionReportes({ auth, horas }: PageProps) {
     router.delete(`/configuracion-reportes/${id}`, {
       onSuccess: () => {
         toast.success('🗑️ Hora eliminada');
-        router.reload({ only: ['horas'] });
-      }
+        cargarHoras();
+      },
     });
   };
 
@@ -80,42 +110,78 @@ export default function ConfiguracionReportes({ auth, horas }: PageProps) {
           </button>
         </div>
 
-        <div className="mb-6">
-          {horasEnvio.length > 0 ? (
-            <table className="min-w-[300px] border border-gray-300 rounded">
-              <thead className="bg-gray-100 text-left text-sm font-semibold">
-                <tr>
-                  <th className="p-2 border-b">#</th>
-                  <th className="p-2 border-b">Hora</th>
-                  <th className="p-2 border-b text-center">Acciones</th>
+        <div className="overflow-x-auto bg-white p-4 rounded shadow">
+          {cargando ? (
+            <p className="text-sm italic text-gray-500">Cargando horas...</p>
+          ) : horasEnvio.length === 0 ? (
+            <p className="text-sm italic text-gray-500">No hay horas registradas.</p>
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-gray-100 text-left">
+                  <th className="px-4 py-2">#</th>
+                  <th className="px-4 py-2">Hora</th>
+                  <th className="px-4 py-2">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {horasEnvio.map((item, index) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="p-2 border-b">{index + 1}</td>
-                    <td className="p-2 border-b">
-                      <input
-                        type="time"
-                        value={item.hora}
-                        onChange={(e) => editarHora(item.id, e.target.value)}
-                        className="border rounded px-2 py-1 w-28"
-                      />
+                  <tr key={item.id} className="border-t">
+                    <td className="px-4 py-2">{index + 1}</td>
+                    <td className="px-4 py-2">
+                      {editandoId === item.id ? (
+                        <input
+                          type="time"
+                          value={horaEditada}
+                          onChange={(e) => setHoraEditada(e.target.value)}
+                          className="border rounded px-2 py-1"
+                        />
+                      ) : (
+                        item.hora.slice(0, 5)
+                      )}
                     </td>
-                    <td className="p-2 border-b text-center">
-                      <button
-                        onClick={() => eliminarHora(item.id)}
-                        className="text-red-600 hover:underline text-sm"
-                      >
-                        Eliminar
-                      </button>
+                    <td className="px-4 py-2 flex gap-2">
+                      {editandoId === item.id ? (
+                        <>
+                          <button
+                            onClick={() => editarHora(item.id, horaEditada)}
+                            className="text-green-600 hover:underline text-sm"
+                          >
+                            Guardar
+                          </button>
+                          <button
+                            onClick={() => setEditandoId(null)}
+                            className="text-gray-500 hover:underline text-sm"
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                        {/*
+                          <button
+                            onClick={() => {
+                              setEditandoId(item.id);
+                              setHoraEditada(item.hora.slice(0, 5));
+                            }}
+                            className="text-blue-600 hover:underline text-sm"
+                          >
+                            Editar
+                          </button>
+                          */}
+                          <button
+                            onClick={() => eliminarHora(item.id)}
+                            className="text-red-600 hover:underline text-sm"
+                          >
+                            Eliminar
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          ) : (
-            <p className="text-sm italic text-gray-500">No hay horas almacenadas aún.</p>
           )}
         </div>
       </div>

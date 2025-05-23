@@ -39,7 +39,7 @@
 
     <div class="info" style="margin-top: 40px;">
         <p>Este es un reporte automático enviado por el sistema de monitoreo. Si tienes dudas o necesitas más información, comunícate con el área correspondiente.</p>
-    </div>
+    </div> 
 
     <div class="footer">
         CableColor &copy; {{ date('Y') }} - Sistema de Reportes Automáticos

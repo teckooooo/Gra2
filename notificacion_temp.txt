@@ -1,0 +1,1 @@
+Laravel schedule:run ejecutado correctamente el 12-05-2025 a las 16:06:29,23. 

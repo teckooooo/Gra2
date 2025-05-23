@@ -12,6 +12,7 @@ use App\Http\Controllers\GrillaCanalesController;
 use App\Http\Controllers\ComercialController;
 use App\Http\Controllers\ReportesComercialController;
 use App\Http\Controllers\ReporteCorreoController;
+use App\Http\Controllers\EjecutivosController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -115,10 +116,26 @@ Route::middleware('auth')->group(function () {
     Route::get('/configuracion', function () {
         return Inertia::render('configuracion');
     })->name('configuracion');
+    Route::get('/configuracion/horas', function () {
+    $horas = DB::table('config_reporte_horas')->select('id', 'hora')->get();
+    return response()->json($horas);
+});
+Route::get('/configuracion/horas', function () {
+    return DB::table('config_reporte_horas')->select('id', 'hora')->get();
+});
+
+
     Route::get('/configuracion-reportes', [ReporteCorreoController::class, 'index'])->middleware('auth');
     Route::post('/configuracion-reportes', [ReporteCorreoController::class, 'store'])->middleware('auth');
     Route::put('/configuracion-reportes/{id}', [ReporteCorreoController::class, 'update'])->middleware('auth');
     Route::delete('/configuracion-reportes/{id}', [ReporteCorreoController::class, 'destroy'])->middleware('auth');
+    Route::get('/configuracion/ejecutivos', [EjecutivosController::class, 'index']);
+Route::post('/configuracion/ejecutivos', [EjecutivosController::class, 'store']);
+Route::delete('/configuracion/ejecutivos/{id}', [EjecutivosController::class, 'destroy']);
+Route::patch('/configuracion/ejecutivos/{id}/toggle', [EjecutivosController::class, 'toggleActivo']);
+Route::put('/configuracion/ejecutivos/{id}', [EjecutivosController::class, 'update']);
+
+
     
     
 

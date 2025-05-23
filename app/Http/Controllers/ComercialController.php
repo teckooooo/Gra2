@@ -6,63 +6,47 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use App\Models\Ejecutivo;
 
 class ComercialController extends Controller
 {
-    public function index($tipo, Request $request)
-    {
-        if (!in_array($tipo, ['altas', 'bajas'])) {
-            abort(404);
-        }
-    
-        $tabla = $tipo === 'altas' ? 'sheet_altas' : 'sheet_bajas_2024';
-        $perPage = $request->input('perPage', 50);
-    
-        $query = DB::table($tabla);
-    
-        $tipo === 'altas'
-            ? $query->orderByRaw("STR_TO_DATE(periodo, '%d/%m/%Y') DESC")
-            : $query->orderByRaw("STR_TO_DATE(fecha_de_termino, '%d/%m/%Y') DESC");
-    
-        $registros = $query->paginate($perPage)->withQueryString();
-        $ejecutivos = DB::table('sheet_altas')->select('ejecutivo')->distinct()->pluck('ejecutivo');
-        $tiposOT = DB::table('sheet_altas')->select('tipo_ot')->distinct()->pluck('tipo_ot');
-        $sucursales = DB::table('sheet_altas')->select('sucursal')->distinct()->pluck('sucursal');
-        $planes = DB::table('planes')->select('nombre')->distinct()->pluck('nombre');
 
-
-    
-        // 🔁 Clonar para obtener todos los datos para gráficos
-        $todosLosDatos = DB::table($tabla)->get();
-    
-        // 🔧 Transformar fechas en ambos casos (solo en $registros paginados)
-        $registros->getCollection()->transform(function ($item) use ($tipo) {
-            $campoFecha = $tipo === 'altas' ? 'periodo' : 'fecha_de_termino';
-    
-            if (is_numeric($item->$campoFecha)) {
-                $item->$campoFecha = Carbon::createFromDate(1900, 1, 1)
-                    ->addDays($item->$campoFecha - 2)
-                    ->format('d/m/Y');
-            } elseif (is_string($item->$campoFecha) && preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $item->$campoFecha)) {
-                // ya está bien
-            } else {
-                $item->$campoFecha = '-';
-            }
-    
-            return $item;
-        });
-    
-        return Inertia::render('Comercial', [
-            'tipo' => $tipo,
-            'registros' => $registros,
-            'datos' => $todosLosDatos,
-            'ejecutivos' => $ejecutivos,
-            'tiposOT' => $tiposOT,
-            'sucursales' => $sucursales,
-            'planes' => $planes,
-
-        ]);
+public function index($tipo, Request $request)
+{
+    if (!in_array($tipo, ['altas', 'bajas'])) {
+        abort(404);
     }
+
+    $tabla = $tipo === 'altas' ? 'sheet_altas' : 'sheet_bajas_2024';
+    $perPage = $request->input('perPage', 50);
+
+    $query = DB::table($tabla);
+
+    $tipo === 'altas'
+        ? $query->orderByRaw("STR_TO_DATE(periodo, '%d/%m/%Y') DESC")
+        : $query->orderByRaw("STR_TO_DATE(fecha_de_termino, '%d/%m/%Y') DESC");
+
+    $registros = $query->paginate($perPage)->withQueryString();
+
+    // ✅ Ejecutivos activos desde la tabla oficial
+    $ejecutivos = Ejecutivo::where('activo', 1)->pluck('nombre');
+
+    $tiposOT = DB::table('sheet_altas')->select('tipo_ot')->distinct()->pluck('tipo_ot');
+    $sucursales = DB::table('sheet_altas')->select('sucursal')->distinct()->pluck('sucursal');
+    $planes = DB::table('planes')->select('nombre')->distinct()->pluck('nombre');
+
+    // ...
+    return Inertia::render('Comercial', [
+        'tipo' => $tipo,
+        'registros' => $registros,
+        'datos' => DB::table($tabla)->get(),
+        'ejecutivos' => $ejecutivos,
+        'tiposOT' => $tiposOT,
+        'sucursales' => $sucursales,
+        'planes' => $planes,
+    ]);
+}
+
     
 
     public function store(Request $request, $tipo)
